@@ -7,11 +7,11 @@ namespace WebMessage.Messages
     /// </summary>
     internal class Message
     {
-        public const string RequestTypeReqest = "request";
+        public const string TypeReqest = "request";
 
-        public const string RequestTypeResponse = "response";
+        public const string TypeResponse = "response";
 
-        public const string ResponseTypeError = "error";
+        public const string TypeError = "error";
 
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace WebMessage.Messages
         /// request
         /// </summary>
         [JsonPropertyOrder(2)]
-        public string Type { get; set; } = RequestTypeReqest;
+        public string Type { get; set; } = TypeReqest;
 
         /// <summary>
         /// The uri of the message identifying the command being sent.

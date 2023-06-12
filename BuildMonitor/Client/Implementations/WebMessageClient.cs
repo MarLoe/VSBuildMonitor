@@ -144,7 +144,7 @@ namespace WebMessage.Client
 
             if (_completionSources.TryRemove(response.Id, out var taskCompletion))
             {
-                if (response.Type is Message.ResponseTypeError)
+                if (response.Type is Message.TypeError)
                 {
                     taskCompletion.TrySetException(new CommandException(response.Error ?? "Unknown error"));
                 }
@@ -170,7 +170,7 @@ namespace WebMessage.Client
         /// </summary>
         protected async Task<TResponse> SendCommandAsyncInternal<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken = default) where TCommand : ICommand where TResponse : ResponseBase, new()
         {
-            var request = command.CreateMessage(Message.RequestTypeReqest, command.Uri);
+            var request = command.CreateMessage(Message.TypeReqest, command.Uri);
 
             var taskSource = new TaskCompletionSource<Message>();
             if (!_completionSources.TryAdd(request.Id, taskSource))

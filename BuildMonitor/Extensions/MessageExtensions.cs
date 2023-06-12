@@ -23,14 +23,14 @@ namespace BuildMonitor.Extensions
             {
                 Uri = request.Uri,
                 Id = request.Id,
-                Type = Message.RequestTypeResponse,
+                Type = Message.TypeResponse,
             };
             return responseMessage;
         }
 
         public static Message<TPayload> CreateResponse<TPayload>(this Message request, TPayload payload)
         {
-            return payload.CreateMessage(Message.RequestTypeResponse, request.Uri, request.Id);
+            return payload.CreateMessage(Message.TypeResponse, request.Uri, request.Id);
         }
 
         public static Message CreateError(this Message request, string error)
@@ -39,7 +39,7 @@ namespace BuildMonitor.Extensions
             {
                 Uri = request.Uri,
                 Id = request.Id,
-                Type = Message.ResponseTypeError,
+                Type = Message.TypeError,
                 Error = error,
             };
         }

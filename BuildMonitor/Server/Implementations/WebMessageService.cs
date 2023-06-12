@@ -31,7 +31,7 @@ namespace WebMessage.Server
                 {
                     throw new InvalidOperationException($@"The actual request 'Uri: {request.Uri}' does not match the registered 'Uri: {Uri}'");
                 }
-                return response.CreateMessage(Message.RequestTypeResponse, request.Uri, request.Id).ToJson();
+                return response.CreateMessage(Message.TypeResponse, request.Uri, request.Id).ToJson();
             }
 
             internal virtual string CreateError(Message request, string error)
@@ -149,7 +149,7 @@ namespace WebMessage.Server
                 var response = new Message
                 {
                     Id = string.Empty,
-                    Type = Message.ResponseTypeError,
+                    Type = Message.TypeError,
                     Error = $@"Unsupported request: {message}"
                 };
                 return JsonSerializer.Serialize(response);
