@@ -37,7 +37,7 @@ namespace WebMessage.Client
 
         public virtual bool IsConnected => _socket?.IsAlive is true;
 
-        public virtual bool IsPaired { get; private set; }
+        public virtual bool IsPaired { get; protected set; }
 
 
         public virtual async Task AttachAsync(IDevice device)
@@ -67,7 +67,14 @@ namespace WebMessage.Client
             ConnectionChanged?.Invoke(this, new(_device, true));
         }
 
-        public virtual async Task ConnectAsync(CancellationToken cancellationToken = default)
+        public virtual Task ConnectAsync()
+        {
+            // Create a default timeout - in case we never get a response.
+            var ctsTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            return ConnectAsync(ctsTimeout.Token);
+        }
+
+        public virtual async Task ConnectAsync(CancellationToken cancellationToken)
         {
             if (_device is null)
             {
@@ -77,7 +84,7 @@ namespace WebMessage.Client
             // Attach existing device - just in case
             await AttachAsync(_device);
 
-            var handshakeResponse = await SendCommandAsyncInternal<HandshakeCommand, HandshakeResponse>(new HandshakeCommand(_device.PairingKey), cancellationToken);
+            var handshakeResponse = await SendCommandInternalAsync<HandshakeCommand, HandshakeResponse>(new HandshakeCommand(_device.PairingKey), cancellationToken);
             if (handshakeResponse?.ReturnValue is true)
             {
                 IsPaired = true;
@@ -100,22 +107,14 @@ namespace WebMessage.Client
 
         public virtual async Task<TResponse?> SendCommandAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : class, IResponse, new()
         {
-            if (_device is null)
-            {
-                throw new InvalidOperationException("Please attach to a device before sending commands");
-            }
+            await ValidateConnectionAsync();
+            return await SendCommandInternalAsync<TCommand, TResponse>(command, cancellationToken);
+        }
 
-            if (!IsPaired)
-            {
-                throw new InvalidOperationException("Please connect device to make handshake before sending commands");
-            }
-
-            if (_socket?.IsAlive is not true)
-            {
-                await ConnectAsync(default);
-            }
-
-            return await SendCommandAsyncInternal<TCommand, TResponse>(command, cancellationToken);
+        public virtual async Task<bool> SubscribeCommandAsync<TCommand, TResponse>(TCommand command, Action<TResponse> eventHandler, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : class, IResponse, new()
+        {
+            await ValidateConnectionAsync();
+            return await SubscribeCommandInternalAsync(command, eventHandler, cancellationToken);
         }
 
         #endregion
@@ -134,7 +133,7 @@ namespace WebMessage.Client
 
         #region Event Handlers
 
-        protected void OnSocketMessage(object? sender, SocketMessageEventArgs e)
+        private void OnSocketMessage(object? sender, SocketMessageEventArgs e)
         {
             //_logger.LogTrace("Received: {data}", e.Data);
 
@@ -170,62 +169,48 @@ namespace WebMessage.Client
         #endregion
 
 
-        #region Internal Methods
+        #region Virtual Helper Methods
 
         /// <summary>
         /// Send command without any prerequisite checks
         /// </summary>
-        protected virtual async Task<TResponse?> SendCommandAsyncInternal<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken = default) where TCommand : ICommand where TResponse : class, IResponse, new()
+        protected virtual Task<TResponse?> SendCommandInternalAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : class, IResponse, new()
         {
             var request = command.CreateMessage(Message.TypeReqest, command.Uri);
+            return SendMessageAsync<TCommand, TResponse>(request, cancellationToken);
+        }
 
-            var taskSource = new TaskCompletionSource<Message>();
-            if (!_completionSources.TryAdd(request.Id, taskSource))
-            {
-                throw new CommandException($@"There is already a pending command with id: {request.Id}");
-            }
-
-            using var ctr = cancellationToken.Register(() =>
-            {
-                if (_completionSources.TryRemove(request.Id, out var taskCompletion))
-                {
-                    taskCompletion.TrySetException(new TimeoutException($@"The command with id '{request.Id}' timed out"));
-                }
-            });
-
-            _responseOptions.Add<TResponse>(request.Uri);
-
-            try
-            {
-                await Task.Run(() =>
-                {
-                    var options = new JsonSerializerOptions
-                    {
-                        TypeInfoResolver = new MessageTypeResolver(new Dictionary<string, Type> { [command.Uri] = typeof(TCommand) })
-                    };
-                    var json = request.ToJson(options);
-
-
-                    //_logger.LogTrace("Sending: {json}", json);
-                    _socket.Send(json);
-                }, cancellationToken);
-
-                if (await taskSource.Task is Message<TResponse> response)
-                {
-                    return response.Payload ?? default;
-                }
-            }
-            finally
-            {
-                _responseOptions.Remove(request.Uri);
-            }
-
-            return new TResponse { ReturnValue = false };
+        /// <summary>
+        /// Subscribe command without any prerequisite checks
+        /// </summary>
+        protected virtual Task<bool> SubscribeCommandInternalAsync<TCommand, TResponse>(TCommand command, Action<TResponse> eventHandler, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : class, IResponse, new()
+        {
+            // TODO: Register eventHandler for receiveing events
+            var request = command.CreateMessage(Message.TypeSubscribe, command.Uri);
+            return SendMessageAsync(request, cancellationToken);
         }
 
         protected virtual bool PreProcessResponse(object? response, string uri, string type, string id)
         {
             return true;
+        }
+
+        protected virtual async Task ValidateConnectionAsync()
+        {
+            if (_device is null)
+            {
+                throw new InvalidOperationException("Please attach to a device before sending commands");
+            }
+
+            if (!IsPaired)
+            {
+                throw new InvalidOperationException("Please connect device to make handshake before sending commands");
+            }
+
+            if (_socket?.IsAlive is not true)
+            {
+                await ConnectAsync(default);
+            }
         }
 
         protected virtual void CloseSockets()
@@ -242,6 +227,96 @@ namespace WebMessage.Client
 
 
         #region Private Helper Methods
+
+        private async Task<bool> SendMessageAsync<TCommand>(Message<TCommand> message, CancellationToken cancellationToken) where TCommand : ICommand
+        {
+            var taskSource = new TaskCompletionSource<Message>();
+            if (!_completionSources.TryAdd(message.Id, taskSource))
+            {
+                throw new CommandException($@"There is already a pending command with id: {message.Id}");
+            }
+
+            using var ctr = cancellationToken.Register(() =>
+            {
+                if (_completionSources.TryRemove(message.Id, out var taskCompletion))
+                {
+                    taskCompletion.TrySetException(new TimeoutException($@"The command with id '{message.Id}' timed out"));
+                }
+            });
+
+            _responseOptions.Add(message.Uri);
+
+            try
+            {
+                await Task.Run(() =>
+                {
+                    var options = new JsonSerializerOptions
+                    {
+                        TypeInfoResolver = new MessageTypeResolver(new Dictionary<string, Type> { [message.Uri] = typeof(TCommand) })
+                    };
+                    var json = message.ToJson(options);
+
+                    //_logger.LogTrace("Sending: {json}", json);
+                    _socket.Send(json);
+                }, cancellationToken);
+
+                if (await taskSource.Task is not null)
+                {
+                    return true;
+                }
+            }
+            finally
+            {
+                _responseOptions.Remove(message.Uri);
+            }
+
+            return false;
+        }
+
+        private async Task<TResponse?> SendMessageAsync<TCommand, TResponse>(Message<TCommand> message, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : class, IResponse, new()
+        {
+            var taskSource = new TaskCompletionSource<Message>();
+            if (!_completionSources.TryAdd(message.Id, taskSource))
+            {
+                throw new CommandException($@"There is already a pending command with id: {message.Id}");
+            }
+
+            using var ctr = cancellationToken.Register(() =>
+            {
+                if (_completionSources.TryRemove(message.Id, out var taskCompletion))
+                {
+                    taskCompletion.TrySetException(new TimeoutException($@"The command with id '{message.Id}' timed out"));
+                }
+            });
+
+            _responseOptions.Add<TResponse>(message.Uri);
+
+            try
+            {
+                await Task.Run(() =>
+                {
+                    var options = new JsonSerializerOptions
+                    {
+                        TypeInfoResolver = new MessageTypeResolver(new Dictionary<string, Type> { [message.Uri] = typeof(TCommand) })
+                    };
+                    var json = message.ToJson(options);
+
+                    //_logger.LogTrace("Sending: {json}", json);
+                    _socket.Send(json);
+                }, cancellationToken);
+
+                if (await taskSource.Task is Message<TResponse> response)
+                {
+                    return response.Payload ?? default;
+                }
+            }
+            finally
+            {
+                _responseOptions.Remove(message.Uri);
+            }
+
+            return new TResponse { ReturnValue = false };
+        }
 
         private bool PreProcessMessage(Message message)
         {

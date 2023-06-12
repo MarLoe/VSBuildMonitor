@@ -45,6 +45,14 @@ namespace ClientConsole
 
             await Task.WhenAll(clients.Select(c => c.ConnectAsync()));
 
+            foreach (var client in clients)
+            {
+                await client.SubscribeCommandAsync<BuildProgressCommand, BuildProgressResponse>(new(), r =>
+                {
+                    Console.WriteLine($@"Event: {r.ReturnValue}");
+                }, default);
+            }
+
             await service.SendAsync(clientId, new HandshakeResponse { Key = "Just you!" });
 
             await service.BroadcastAsync(new HandshakeResponse { Key = "All of you!" });

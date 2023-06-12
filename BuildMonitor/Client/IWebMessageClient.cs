@@ -4,7 +4,7 @@ using WebMessage.Device;
 namespace WebMessage.Client
 {
     /// <summary>
-    /// Client for communicating with a web message device.
+    /// Client for communicating with a message server.
     /// </summary>
     public interface IWebMessageClient
     {
@@ -50,7 +50,13 @@ namespace WebMessage.Client
 
         /// <summary>
         /// Connect to the device that was attached using <see cref="AttachAsync(IDevice)"/>.
-        /// establish connection with a handshake.
+        /// Establish connection with a handshake.
+        /// </summary>
+        Task ConnectAsync();
+
+        /// <summary>
+        /// Connect to the device that was attached using <see cref="AttachAsync(IDevice)"/>.
+        /// Establish connection with a handshake.
         /// </summary>
         /// <param name="cancellationToken">
         /// Connecting will start by sending a handshake. If the device is not
@@ -68,7 +74,7 @@ namespace WebMessage.Client
         void Close();
 
         /// <summary>
-        /// Send command to the WebOS device.
+        /// Send command to the server.
         /// </summary>
         /// <typeparam name="TResponse">
         /// The expected response type.
@@ -82,7 +88,7 @@ namespace WebMessage.Client
         Task<TResponse?> SendCommandAsync<TCommand, TResponse>(TCommand command) where TCommand : ICommand where TResponse : class, IResponse, new();
 
         /// <summary>
-        /// Send command to the WebOS device.
+        /// Send command to the server.
         /// </summary>
         /// <typeparam name="TResponse">
         /// The expected response type.
@@ -97,6 +103,29 @@ namespace WebMessage.Client
         /// The response or Task failed on error.
         /// </returns>
         Task<TResponse?> SendCommandAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : class, IResponse, new();
+
+        /// <summary>
+        /// Subscribe to events on the server
+        /// </summary>
+        /// <typeparam name="TCommand">
+        /// The type of the command to subscribe to.
+        /// </typeparam>
+        /// <typeparam name="TResponse">
+        /// The expected response type.
+        /// </typeparam>
+        /// <param name="command">
+        /// The command to subscribe to.
+        /// </param>
+        /// <param name="eventHandler">
+        /// Called when ever an event is raised on the server.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// Cancellation token for aborting the command.
+        /// </param>
+        /// <returns>
+        /// On success <c>true</c>, else <c>false</c>.
+        /// </returns>
+        Task<bool> SubscribeCommandAsync<TCommand, TResponse>(TCommand command, Action<TResponse> eventHandler, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : class, IResponse, new();
     }
 
 

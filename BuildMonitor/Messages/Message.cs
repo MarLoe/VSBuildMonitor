@@ -9,6 +9,8 @@ namespace WebMessage.Messages
     {
         public const string TypeReqest = "request";
 
+        public const string TypeSubscribe = "subscribe";
+
         public const string TypeResponse = "response";
 
         public const string TypeError = "error";
