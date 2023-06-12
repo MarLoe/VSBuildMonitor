@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<RootNamespace>com.lobger.vsbuildmonitor</RootNamespace>
+		<Nullable>enable</Nullable>
+		<WarningLevel>4</WarningLevel>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(RunConfiguration)' == 'Default' ">
+		<StartAction>Program</StartAction>
+		<StartProgram>\Applications\Visual Studio.app\Contents\MacOS\VisualStudio</StartProgram>
+		<StartArguments>--no-redirect --no-start-window "/Users/malo/Projects/VSBuildMonitor/TestProject/TestProject.sln"</StartArguments>
+		<ExternalConsole>true</ExternalConsole>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.VisualStudioMac.Sdk" Version="17.5.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<AddinReference Include="Microsoft.VisualStudioMac.AddinMaker" />
+	</ItemGroup>
+	<ItemGroup>
+	  <None Remove="WebSocketServer\" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="WebSocketServer\" />
+	</ItemGroup>
+</Project>

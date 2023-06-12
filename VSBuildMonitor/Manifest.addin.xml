@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionModel>
+	<Extension path="/MonoDevelop/Ide/StartupHandlers">
+		<Class class="com.lobger.vsbuildmonitor.StartupHandler" />
+	</Extension>
+
+	<Extension path="/MonoDevelop/Ide/Commands/Edit">
+		<Command id="com.lobger.vsbuildmonitor.SampleCommands.InsertText" _label="Insert Text" defaultHandler="com.lobger.vsbuildmonitor.InsertTextHandler" />
+	</Extension>
+
+	<Extension path="/MonoDevelop/Ide/MainMenu/Edit">
+		<CommandItem id="com.lobger.vsbuildmonitor.SampleCommands.InsertText" />
+	</Extension>
+</ExtensionModel>
