@@ -40,7 +40,7 @@ namespace WebMessage.Server
         protected override void OnOpen()
         {
             base.OnOpen();
-            RequestManager!.AddClient(this);
+            RequestManager!.AddConnection(this);
         }
 
         protected override void OnMessage(MessageEventArgs e)
@@ -51,7 +51,7 @@ namespace WebMessage.Server
         protected override void OnClose(CloseEventArgs e)
         {
             base.OnClose(e);
-            RequestManager!.RemoveClient(this);
+            RequestManager!.RemoveConnection(this);
         }
 
         protected virtual async Task HandleRequest(MessageEventArgs e)

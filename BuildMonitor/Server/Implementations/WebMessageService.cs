@@ -168,7 +168,7 @@ namespace WebMessage.Server
             return result;
         }
 
-        internal void AddClient(IWebMessageConnection connection)
+        internal void AddConnection(IWebMessageConnection connection)
         {
             ArgumentNullException.ThrowIfNull(connection);
             if (string.IsNullOrEmpty(connection.Id))
@@ -189,7 +189,7 @@ namespace WebMessage.Server
             ClientConnected?.Invoke(this, new(connection.Id));
         }
 
-        internal void RemoveClient(IWebMessageConnection connection)
+        internal void RemoveConnection(IWebMessageConnection connection)
         {
             ArgumentNullException.ThrowIfNull(connection);
             _connections.RemoveAll(c => c.Id == connection.Id);
