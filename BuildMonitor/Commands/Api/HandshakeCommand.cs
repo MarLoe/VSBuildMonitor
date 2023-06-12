@@ -19,16 +19,6 @@ namespace WebMessage.Commands.Api
             CustomId = "register_0";
             CustomType = "register";
         }
-
-        //public override JObject ToJObject()
-        //{
-        //    var json = JObject.Parse(HandshakeJson);
-        //    if (!string.IsNullOrEmpty(Key))
-        //    {
-        //        json["client-key"] = Key;
-        //    }
-        //    return json;
-        //}
     }
 
     /// <summary>

@@ -13,8 +13,8 @@
     <ExternalConsole>true</ExternalConsole>
   </PropertyGroup>
 
-
   <ItemGroup>
     <ProjectReference Include="..\BuildMonitor\BuildMonitor.csproj" />
   </ItemGroup>
+
 </Project>
