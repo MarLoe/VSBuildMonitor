@@ -8,6 +8,8 @@ namespace WebMessage.Server
         string Id { get; }
 
         Task<bool> SendAsync(string data);
+
+        Task<bool> BroadcastAsync(string data);
     }
 
     internal class WebMessageBehavior : WebSocketBehavior, IWebMessageConnection
@@ -28,7 +30,23 @@ namespace WebMessage.Server
                     Send(data);
                     return true;
                 }
-                catch (Exception )
+                catch (Exception)
+                {
+                    return false;
+                }
+            });
+        }
+
+        public Task<bool> BroadcastAsync(string data)
+        {
+            return Task.Run(() =>
+            {
+                try
+                {
+                    Sessions.Broadcast(data);
+                    return true;
+                }
+                catch (Exception)
                 {
                     return false;
                 }

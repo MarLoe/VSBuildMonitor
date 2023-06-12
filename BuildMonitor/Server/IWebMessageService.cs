@@ -16,6 +16,9 @@
 
         void UnregisterRequest(string uri);
 
+        Task<bool> SendAsync<TResponse>(string clientId, TResponse response);
+
+        Task<bool> BroadcastAsync<TResponse>(TResponse response);
     }
 
     public class ClientConnectionEventArgs : EventArgs

@@ -145,6 +145,46 @@ namespace WebMessage.Server
             _messageTypeResolver.Remove(uri);
         }
 
+        public Task<bool> SendAsync<TResponse>(string clientId, TResponse response)
+        {
+            ArgumentNullException.ThrowIfNullOrEmpty(clientId);
+
+            var requestInfo = _registeredRequests.FirstOrDefault(r => r.ResponseType == typeof(TResponse));
+            if (requestInfo is null)
+            {
+                throw new InvalidOperationException($@"Cannot send a response that has not been registered: {typeof(TResponse)}");
+            }
+
+            var connection = _connections.FirstOrDefault(c => c.Id == clientId);
+            if (connection is null)
+            {
+                return Task.FromResult(false);
+            }
+
+            var message = response.CreateMessage(Message.TypeResponse, requestInfo.Uri, "");
+            return connection?.SendAsync(message.ToJson()) ?? Task.FromResult(false);
+        }
+
+        public Task<bool> BroadcastAsync<TResponse>(TResponse response)
+        {
+            var requestInfo = _registeredRequests.FirstOrDefault(r => r.ResponseType == typeof(TResponse));
+            if (requestInfo is null)
+            {
+                throw new InvalidOperationException($@"Cannot send a response that has not been registered: {typeof(TResponse)}");
+            }
+
+            var connection = _connections.FirstOrDefault();
+            if (connection is null)
+            {
+                // No clients connected - all good
+                return Task.FromResult(true);
+            }
+
+            var message = response.CreateMessage(Message.TypeResponse, requestInfo.Uri, "");
+            return connection?.BroadcastAsync(message.ToJson()) ?? Task.FromResult(false);
+        }
+
+
         internal async Task<string> HandleRequest(string clientId, string message)
         {
             var request = DeserializeRequest(message);

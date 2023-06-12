@@ -1,4 +1,5 @@
 ﻿using WebMessage.Client;
+using WebMessage.Commands.Api;
 using WebMessage.Device;
 using WebMessage.Server;
 
@@ -44,14 +45,14 @@ namespace ClientConsole
 
             await Task.WhenAll(clients.Select(c => c.ConnectAsync()));
 
+            await service.SendAsync(clientId, new HandshakeResponse { Key = "Just you!" });
+
+            await service.BroadcastAsync(new HandshakeResponse { Key = "All of you!" });
+
             foreach (var client in clients)
             {
                 client.Close();
             }
-
-            await Task.Delay(1000);
-
-            Console.ReadLine();
         }
     }
 
