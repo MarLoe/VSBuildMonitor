@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.WebSockets;
-using System.Runtime.Versioning;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace com.lobger.WebSocketServer
 {
-    [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
     public class WebSocketServer : IWebSocketServer
     {
         /// <summary>
@@ -29,25 +22,34 @@ namespace com.lobger.WebSocketServer
             }
         }
 
+
+
         private readonly HttpListener _httpListener;
         private readonly ConcurrentDictionary<Guid, ClientInfo> _clients;
+        private readonly IRequestManager _requestManager;
 
         private CancellationTokenSource? _cancellationTokenSource;
 
-        public WebSocketServer(string url)
+        public WebSocketServer(string url) : this(new RequestManager(), url)
+        {
+        }
+
+        internal WebSocketServer(IRequestManager requestManager, string url)
         {
             _httpListener = new();
             _httpListener.Prefixes.Add(url);
 
             _clients = new();
+            _requestManager = requestManager ?? throw new ArgumentNullException(nameof(requestManager));
         }
-
 
         #region IWebSocketServer
 
-        public event EventHandler<ClientConnectionEventArgs>? ClientConnected;
+        public event EventHandler<ClientEventArgs>? ClientConnected;
 
-        public event EventHandler<ClientConnectionEventArgs>? ClientDisconnected;
+        public event EventHandler<ClientEventArgs>? ClientDisconnected;
+
+        public event EventHandler<MessageReceivedEventArgs>? MessageReceived;
 
         public async Task Start()
         {
@@ -89,6 +91,21 @@ namespace com.lobger.WebSocketServer
         {
             _cancellationTokenSource?.Cancel();
             _httpListener.Stop();
+        }
+
+        public void RegisterRequest(string uri, Callback callback)
+        {
+            _requestManager.RegisterRequest(uri, callback);
+        }
+
+        public void RegisterRequest<TRequest>(string uri, Callback<TRequest> callback)
+        {
+            _requestManager.RegisterRequest(uri, callback);
+        }
+
+        public void UnregisterRequest(string uri)
+        {
+            _requestManager.UnregisterRequest(uri);
         }
 
         public Task SendMessage(Guid clientId, string message, CancellationToken cancellationToken)
@@ -141,11 +158,10 @@ namespace com.lobger.WebSocketServer
                     if (receiveResult.MessageType is WebSocketMessageType.Close)
                     {
                         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, cancellationToken);
-                        break; ;
+                        break;
                     }
 
-                    // Echo the received message back to the client
-                    await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, receiveResult.Count), WebSocketMessageType.Text, true, cancellationToken);
+                    _requestManager.HandleRequest(clientId, Encoding.UTF8.GetString(buffer, 0, receiveResult.Count));
                 }
             }
             catch (WebSocketException ex)
@@ -161,7 +177,7 @@ namespace com.lobger.WebSocketServer
                 ClientDisconnected?.Invoke(this, new(clientId));
             }
         }
-      
+
     }
 
 }

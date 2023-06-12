@@ -7,10 +7,4 @@
     <RootNamespace>com.lobger.WebSocketServer</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="Messages\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Messages\" />
-  </ItemGroup>
 </Project>
