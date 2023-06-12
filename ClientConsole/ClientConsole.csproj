@@ -7,6 +7,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Default' ">
+    <StartAction>Project</StartAction>
+    <StartWorkingDirectory>$(MSBuildProjectDirectory)</StartWorkingDirectory>
+    <ExternalConsole>true</ExternalConsole>
+  </PropertyGroup>
+
+
   <ItemGroup>
     <ProjectReference Include="..\WebSocketServer\WebSocketServer.csproj" />
   </ItemGroup>
