@@ -21,9 +21,18 @@ namespace WebMessage.Server
 
         public Task<bool> SendAsync(string data)
         {
-            var tcs = new TaskCompletionSource<bool>();
-            SendAsync(data, r => tcs.TrySetResult(r));
-            return tcs.Task;
+            return Task.Run(() =>
+            {
+                try
+                {
+                    Send(data);
+                    return true;
+                }
+                catch (Exception )
+                {
+                    return false;
+                }
+            });
         }
 
         #endregion
