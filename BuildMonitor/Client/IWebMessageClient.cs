@@ -15,6 +15,11 @@ namespace WebMessage.Client
         event EventHandler<ConnectionChangedEventArgs> ConnectionChanged;
 
         /// <summary>
+        /// Raised if an invalid message is received.
+        /// </summary>
+        event EventHandler<InvalidMessageEventArgs> InvalidMessage;
+
+        /// <summary>
         /// Raised when the pairing key is updated.
         /// </summary>
         event EventHandler<PairingUpdatedEventArgs> PairingUpdated;
@@ -74,7 +79,7 @@ namespace WebMessage.Client
         /// <returns>
         /// The response or Task failed on error.
         /// </returns>
-        Task<TResponse> SendCommandAsync<TCommand, TResponse>(TCommand command) where TCommand : ICommand where TResponse : ResponseBase, new();
+        Task<TResponse?> SendCommandAsync<TCommand, TResponse>(TCommand command) where TCommand : ICommand where TResponse : class, IResponse, new();
 
         /// <summary>
         /// Send command to the WebOS device.
@@ -91,7 +96,7 @@ namespace WebMessage.Client
         /// <returns>
         /// The response or Task failed on error.
         /// </returns>
-        Task<TResponse> SendCommandAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : ResponseBase, new();
+        Task<TResponse?> SendCommandAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : class, IResponse, new();
     }
 
 
@@ -120,6 +125,20 @@ namespace WebMessage.Client
         }
 
         public bool IsConnected { get; }
+    }
+
+
+    /// <summary>
+    /// Event arguments for <see cref="IWebMessageClient.InvalidMessage"/>
+    /// </summary>
+    public class InvalidMessageEventArgs : DeviceEventArgs
+    {
+        public InvalidMessageEventArgs(IDevice device, string message) : base(device)
+        {
+            Message = message;
+        }
+
+        public string Message { get; }
     }
 
 

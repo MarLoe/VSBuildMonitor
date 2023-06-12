@@ -29,6 +29,10 @@ namespace WebMessage.Client
 
         public event EventHandler<ConnectionChangedEventArgs>? ConnectionChanged;
 
+        public event EventHandler<InvalidMessageEventArgs>? InvalidMessage;
+
+        public event EventHandler<InvalidMessageEventArgs>? MessageReceived;
+
         public event EventHandler<PairingUpdatedEventArgs>? PairingUpdated;
 
         public virtual bool IsConnected => _socket?.IsAlive is true;
@@ -74,7 +78,7 @@ namespace WebMessage.Client
             await AttachAsync(_device);
 
             var handshakeResponse = await SendCommandAsyncInternal<HandshakeCommand, HandshakeResponse>(new HandshakeCommand(_device.PairingKey), cancellationToken);
-            if (handshakeResponse.ReturnValue)
+            if (handshakeResponse?.ReturnValue is true)
             {
                 IsPaired = true;
                 PairingUpdated?.Invoke(this, new(_device, handshakeResponse.Key));
@@ -87,14 +91,14 @@ namespace WebMessage.Client
             CloseSockets();
         }
 
-        public virtual Task<TResponse> SendCommandAsync<TCommand, TResponse>(TCommand command) where TCommand : ICommand where TResponse : ResponseBase, new()
+        public virtual Task<TResponse?> SendCommandAsync<TCommand, TResponse>(TCommand command) where TCommand : ICommand where TResponse : class, IResponse, new()
         {
             // Create a default timeout - in case we never get a response.
             var ctsTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             return SendCommandAsync<TCommand, TResponse>(command, ctsTimeout.Token);
         }
 
-        public virtual async Task<TResponse> SendCommandAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : ResponseBase, new()
+        public virtual async Task<TResponse?> SendCommandAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : class, IResponse, new()
         {
             if (_device is null)
             {
@@ -138,8 +142,13 @@ namespace WebMessage.Client
             var response = JsonSerializer.Deserialize<Message>(e.Data, options);
             if (response is null)
             {
-                // TODO: Report unknown message
+                InvalidMessage?.Invoke(this, new(_device!, e.Data));
                 return;
+            }
+
+            if (PreProcessResponse(response) is false)
+            {
+
             }
 
             if (_completionSources.TryRemove(response.Id, out var taskCompletion))
@@ -168,7 +177,7 @@ namespace WebMessage.Client
         /// <summary>
         /// Send command without any prerequisite checks
         /// </summary>
-        protected async Task<TResponse> SendCommandAsyncInternal<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken = default) where TCommand : ICommand where TResponse : ResponseBase, new()
+        protected virtual async Task<TResponse?> SendCommandAsyncInternal<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken = default) where TCommand : ICommand where TResponse : class, IResponse, new()
         {
             var request = command.CreateMessage(Message.TypeReqest, command.Uri);
 
@@ -203,9 +212,9 @@ namespace WebMessage.Client
                     _socket.Send(json);
                 }, cancellationToken);
 
-                if (await taskSource.Task is Message<TResponse> { Payload: not null } response)
+                if (await taskSource.Task is Message<TResponse> response)
                 {
-                    return response.Payload;
+                    return response.Payload ?? default;
                 }
             }
             finally
@@ -216,7 +225,12 @@ namespace WebMessage.Client
             return new TResponse { ReturnValue = false };
         }
 
-        protected void CloseSockets()
+        protected virtual bool PreProcessMessage<TResponse>(TResponse response, string uri, string type, string id) where TResponse : class, IResponse, new()
+        {
+            return true;
+        }
+
+        protected virtual void CloseSockets()
         {
             if (_socket is not null)
             {
