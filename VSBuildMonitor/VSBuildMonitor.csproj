@@ -24,4 +24,7 @@
 	<ItemGroup>
 	  <Folder Include="WebSocketServer\" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\WebSocketServer\WebSocketServer.csproj" />
+	</ItemGroup>
 </Project>

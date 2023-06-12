@@ -6,6 +6,7 @@ using MonoDevelop.Components.Commands;
 using MonoDevelop.Core;
 using MonoDevelop.Ide;
 using MonoDevelop.Projects;
+using com.lobger.WebSocketServer;
 
 namespace com.lobger.vsbuildmonitor
 {
@@ -15,6 +16,9 @@ namespace com.lobger.vsbuildmonitor
 
         protected override void Run()
         {
+            var server = new WebSocketServer.WebSocketServer("http://localhost:11011/");
+            _ = server.Start();
+
             IdeServices.ProjectOperations.StartBuild += ProjectOperations_StartBuild;
             IdeServices.ProjectOperations.EndBuild += ProjectOperations_EndBuild;
         }
