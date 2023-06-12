@@ -45,7 +45,6 @@ namespace WebMessage.Server
 
             // To change the wait time for the response to the Ping or Close.
             _server.WaitTime = TimeSpan.FromSeconds(10);
-
 #endif
 
             _server.Start();

@@ -6,10 +6,25 @@
 
     public interface IWebMessageService
     {
+        event EventHandler<ClientConnectionEventArgs> ClientConnected;
+
+        event EventHandler<ClientConnectionEventArgs> ClientDisconnected;
+
         void RegisterRequestHandler<TResponse>(string uri, RequestHandler<TResponse> handler);
 
         void RegisterRequestHandler<TRequest, TResponse>(string uri, RequestHandler<TRequest, TResponse> handler);
 
         void UnregisterRequest(string uri);
+
+    }
+
+    public class ClientConnectionEventArgs : EventArgs
+    {
+        public string Id { get; }
+
+        public ClientConnectionEventArgs(string id)
+        {
+            Id = id;
+        }
     }
 }

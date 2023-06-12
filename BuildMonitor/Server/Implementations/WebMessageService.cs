@@ -101,6 +101,10 @@ namespace WebMessage.Server
             _connections = new();
         }
 
+        public event EventHandler<ClientConnectionEventArgs>? ClientConnected;
+
+        public event EventHandler<ClientConnectionEventArgs>? ClientDisconnected;
+
         public void RegisterRequestHandler<TResponse>(string uri, RequestHandler<TResponse> handler)
         {
             var requestInfo = _registeredRequests.FirstOrDefault(r => r.Uri == uri);
@@ -182,12 +186,14 @@ namespace WebMessage.Server
                 throw new ArgumentException($@"Connection with id '{connection.Id}' already exists");
             }
             _connections.Add(connection);
+            ClientConnected?.Invoke(this, new(connection.Id));
         }
 
         internal void RemoveClient(IWebMessageConnection connection)
         {
             ArgumentNullException.ThrowIfNull(connection);
             _connections.RemoveAll(c => c.Id == connection.Id);
+            ClientDisconnected?.Invoke(this, new(connection.Id));
         }
 
         protected string SerializeRequest<TRequest>(TRequest request) where TRequest : Message

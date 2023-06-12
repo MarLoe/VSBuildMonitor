@@ -8,13 +8,20 @@ namespace ClientConsole
     {
         static async Task Main(string[] args)
         {
+            var clientId = string.Empty;
+
             var server = new WebMessageServer();
-            var requestManager = server.AddService("/", r =>
+            var service = server.AddService("/", r =>
             {
                 var key = $@"MARTIN {Guid.NewGuid().ToString()}";
                 Console.WriteLine($@"Generate: {key}");
                 return Task.FromResult(key);
             });
+            service.ClientConnected += (s, e) =>
+            {
+                clientId = e.Id;
+                Console.WriteLine($@"Client connected: {clientId}");
+            };
 
             var device = new WebMessageDevice { HostName = "localhost", Port = 13000 };
             var _socket = new SocketConnection();
