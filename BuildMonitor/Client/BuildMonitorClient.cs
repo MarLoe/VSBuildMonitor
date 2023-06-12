@@ -16,7 +16,7 @@ namespace BuildMonitor.Client
         private readonly ISocketConnection _socket;
 
         private readonly ConcurrentDictionary<string, TaskCompletionSource<Message>> _completionSources = new();
-        private readonly MessageResponseTypeResolver _responseOptions = new();
+        private readonly MessageTypeResolver _responseOptions = new();
 
         private IDevice? _device;
 
@@ -222,14 +222,15 @@ namespace BuildMonitor.Client
                 }
             });
 
-            _responseOptions.AddResponse<TResponse>(request.Uri);
+            _responseOptions.Add<TResponse>(request.Uri);
+
             try
             {
                 await Task.Run(() =>
                 {
                     var options = new JsonSerializerOptions
                     {
-                        TypeInfoResolver = new MessageRequestTypeResolver(new Dictionary<string, Type> { [command.Uri] = typeof(TCommand) })
+                        TypeInfoResolver = new MessageTypeResolver(new Dictionary<string, Type> { [command.Uri] = typeof(TCommand) })
                     };
                     var json = JsonSerializer.Serialize(request, options);
 
@@ -245,7 +246,7 @@ namespace BuildMonitor.Client
             }
             finally
             {
-                _responseOptions.RemoveResponse(request.Uri);
+                _responseOptions.Remove(request.Uri);
             }
 
             return new TResponse { ReturnValue = false };

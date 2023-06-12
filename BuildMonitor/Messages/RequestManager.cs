@@ -1,10 +1,10 @@
 ﻿
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace BuildMonitor.Messages
 {
+
     internal class RequestManager : IRequestManager
     {
         protected abstract class RequestInfoBase
@@ -48,33 +48,13 @@ namespace BuildMonitor.Messages
             {
                 var options = new JsonSerializerOptions
                 {
-                    //TypeInfoResolver = responseOptions,
-                    //TypeInfoResolver = new DefaultJsonTypeInfoResolver
-                    //{
-                    //    Modifiers = { ExcludeEmptyStrings }
-                    //},
                     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 #if DEBUG
                     WriteIndented = true,
 #endif
                 };
-                //options.Converters.Add(new IgnoreEmptyStringConverter());
                 return JsonSerializer.Serialize(response, options);
             }
-
-            //static void ExcludeEmptyStrings(JsonTypeInfo jsonTypeInfo)
-            //{
-            //    if (jsonTypeInfo.Kind is JsonTypeInfoKind.Object)
-            //    {
-            //        foreach (JsonPropertyInfo jsonPropertyInfo in jsonTypeInfo.Properties.Where(p => p.PropertyType == typeof(string)))
-            //        {
-            //            jsonPropertyInfo.ShouldSerialize = static (obj, value) =>
-            //            {
-            //                return !string.IsNullOrEmpty((string?)value);
-            //            };
-            //        }
-            //    }
-            //}
         }
 
         protected class RequestInfo<TResponse> : RequestInfoBase
@@ -125,18 +105,15 @@ namespace BuildMonitor.Messages
                 }
                 return CreateError(message, "Invalid request");
             }
-
         }
 
         private readonly HashSet<RequestInfoBase> _registeredRequests;
-
-        private JsonSerializerOptions? _options;
+        private readonly MessageTypeResolver _messageTypeResolver;
 
         public RequestManager()
         {
             _registeredRequests = new();
-
-            UpdateOptions();
+            _messageTypeResolver = new();
         }
 
         public void RegisterRequestHandler<TResponse>(string uri, RequestHandler<TResponse> handler)
@@ -153,7 +130,7 @@ namespace BuildMonitor.Messages
             }
 
             _registeredRequests.Add(new RequestInfo<TResponse>(uri, handler));
-            UpdateOptions();
+            _messageTypeResolver.Add(uri);
         }
 
         public void RegisterRequestHandler<TRequest, TResponse>(string uri, RequestHandler<TRequest, TResponse> handler)
@@ -170,13 +147,13 @@ namespace BuildMonitor.Messages
             }
 
             _registeredRequests.Add(new RequestInfo<TRequest, TResponse>(uri, handler));
-            UpdateOptions();
+            _messageTypeResolver.Add<TRequest>(uri);
         }
 
         public void UnregisterRequest(string uri)
         {
             _registeredRequests.RemoveWhere(r => r.Uri == uri);
-            UpdateOptions();
+            _messageTypeResolver.Remove(uri);
         }
 
         public async Task<string> HandleRequest(string clientId, string message)
@@ -204,20 +181,20 @@ namespace BuildMonitor.Messages
 
         internal string SerializeRequest<TRequest>(TRequest request) where TRequest : Message
         {
-            return JsonSerializer.Serialize(request, _options);
+            return JsonSerializer.Serialize(request, CreateOptions());
         }
 
         internal Message? DeserializeRequest(string request)
         {
-            return JsonSerializer.Deserialize<Message>(request, _options);
+            return JsonSerializer.Deserialize<Message>(request, CreateOptions());
         }
 
-        private void UpdateOptions()
+        private JsonSerializerOptions CreateOptions()
         {
-            _options = new JsonSerializerOptions
+            return new JsonSerializerOptions
             {
-                TypeInfoResolver = new MessageRequestTypeResolver(_registeredRequests.ToDictionary(k => k.Uri, v => v.RequestType)),
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                TypeInfoResolver = _messageTypeResolver,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 #if DEBUG
                 WriteIndented = true,
 #endif
@@ -225,25 +202,5 @@ namespace BuildMonitor.Messages
         }
 
     }
-
-    //public class IgnoreEmptyStringConverter : JsonConverter<string>
-    //{
-    //    // Override default null handling
-    //    public override bool HandleNull => true;
-
-    //    // Ignore for this exampke
-    //    public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-
-    //    public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
-    //    {
-    //        if (!string.IsNullOrWhiteSpace(value))
-    //        {
-    //            writer.WriteStringValue(value);
-    //        }
-    //    }
-    //}
 
 }
