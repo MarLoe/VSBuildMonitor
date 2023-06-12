@@ -1,45 +1,25 @@
-﻿using System.Text;
-using System.Text.Json;
-using com.lobger.WebSocketServer;
-using com.lobger.WebSocketServer.Messages;
+﻿using BuildMonitor.Client;
+using BuildMonitor.Device;
+using BuildMonitor.Server;
 
-namespace ClientConsole;
-
-class Program
+namespace ClientConsole
 {
-    static async Task Main(string[] args)
+    class Program
     {
-        var request = new Message<HandshakeRequest>
+        static async Task Main(string[] args)
         {
-            Type = "request",
-            Uri = "handshake",
-            Payload = new() { Token = "TheToken" },
-        };
+            var server = new BuildMonitorServer();
 
-        var requestManager = new RequestManager();
-        requestManager.RegisterRequest("subscribe", (c, m, t) =>
-        {
-            Console.WriteLine($@"Client {c}");
-            return Task.CompletedTask;
-        });
-        requestManager.RegisterRequest<HandshakeRequest>("handshake", (c, m, t, r) =>
-        {
-            Console.WriteLine($@"Client {c}: {r.Token}");
-            return Task.CompletedTask;
-        });
+            var device = new BuildDevice { HostName = "localhost", Port = 13000 };
+            var _socket = new SocketConnection();
 
-        var message = await File.ReadAllTextAsync("Requests/SubscribeRequest.json");
-        requestManager.HandleRequest(Guid.NewGuid(), message);
+            var client = new BuildMonitorClient(new SocketConnection());
+            client.PairingUpdated += (s, e) => Console.WriteLine(e.Device.PairingKey);
+            await client.AttachAsync(device);
+            await client.ConnectAsync();
 
-        message = await File.ReadAllTextAsync("Requests/HandshakeRequest.json");
-        requestManager.HandleRequest(Guid.NewGuid(), message);
-
-        //await File.WriteAllTextAsync("Requests/HandshakeRequest.json", json, Encoding.UTF8);
-
-        //var req = JsonSerializer.Deserialize<Message>(json, options);
-
-        var server = new WebSocketServer("http://+:11011/");
-        await server.Start();
+            Console.ReadLine();
+        }
     }
-}
 
+}
