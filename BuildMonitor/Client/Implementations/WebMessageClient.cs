@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.Json;
+using BuildMonitor.Extensions;
 using WebMessage.Commands;
 using WebMessage.Commands.Api;
 using WebMessage.Device;
@@ -169,25 +170,7 @@ namespace WebMessage.Client
         /// </summary>
         protected async Task<TResponse> SendCommandAsyncInternal<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken = default) where TCommand : ICommand where TResponse : ResponseBase, new()
         {
-            var request = new Message<TCommand>
-            {
-                Uri = command.Uri,
-                Type = "request",
-                Payload = command,
-            };
-
-            if (command is ICommandCustom commandCustom)
-            {
-                if (!string.IsNullOrEmpty(commandCustom.CustomId))
-                {
-                    request.Id = commandCustom.CustomId;
-                }
-
-                if (!string.IsNullOrEmpty(commandCustom.CustomType))
-                {
-                    request.Type = commandCustom.CustomType;
-                }
-            }
+            var request = command.CreateMessage(Message.RequestTypeReqest, command.Uri);
 
             var taskSource = new TaskCompletionSource<Message>();
             if (!_completionSources.TryAdd(request.Id, taskSource))
@@ -213,7 +196,7 @@ namespace WebMessage.Client
                     {
                         TypeInfoResolver = new MessageTypeResolver(new Dictionary<string, Type> { [command.Uri] = typeof(TCommand) })
                     };
-                    var json = JsonSerializer.Serialize(request, options);
+                    var json = request.ToJson(options);
 
 
                     //_logger.LogTrace("Sending: {json}", json);

@@ -9,7 +9,10 @@ namespace WebMessage.Messages
     {
         public const string RequestTypeReqest = "request";
 
+        public const string RequestTypeResponse = "response";
+
         public const string ResponseTypeError = "error";
+
 
         /// <summary>
         /// The id of the message. Resposed will be tagged

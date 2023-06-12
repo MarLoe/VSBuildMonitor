@@ -1,0 +1,78 @@
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using WebMessage.Commands;
+using WebMessage.Messages;
+
+namespace BuildMonitor.Extensions
+{
+    internal static class MessageExtensions
+    {
+        public static string ToJson<TMessage>(this TMessage message, JsonSerializerOptions? options = null) where TMessage : Message
+        {
+            options ??= new JsonSerializerOptions();
+            options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+#if DEBUG
+            options.WriteIndented = true;
+#endif
+            return JsonSerializer.Serialize(message, options);
+        }
+
+        public static Message CreateResponse(this Message request)
+        {
+            var responseMessage = new Message
+            {
+                Uri = request.Uri,
+                Id = request.Id,
+                Type = Message.RequestTypeResponse,
+            };
+            return responseMessage;
+        }
+
+        public static Message<TPayload> CreateResponse<TPayload>(this Message request, TPayload payload)
+        {
+            return payload.CreateMessage(Message.RequestTypeResponse, request.Uri, request.Id);
+        }
+
+        public static Message CreateError(this Message request, string error)
+        {
+            return new Message
+            {
+                Uri = request.Uri,
+                Id = request.Id,
+                Type = Message.ResponseTypeError,
+                Error = error,
+            };
+        }
+
+        public static Message<TPayload> CreateMessage<TPayload>(this TPayload payload, string type, string uri, string? id = null)
+        {
+            var message = new Message<TPayload>
+            {
+                Uri = uri,
+                Type = type,
+                Payload = payload,
+            };
+
+            if (id is not null)
+            {
+                message.Id = id;
+            }
+
+            if (payload is ICommandCustom commandCustom)
+            {
+                if (!string.IsNullOrEmpty(commandCustom.CustomId))
+                {
+                    message.Id = commandCustom.CustomId;
+                }
+
+                if (!string.IsNullOrEmpty(commandCustom.CustomType))
+                {
+                    message.Type = commandCustom.CustomType;
+                }
+            }
+
+            return message;
+        }
+    }
+}
+

@@ -1,6 +1,6 @@
-﻿
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using BuildMonitor.Extensions;
 using WebMessage.Messages;
 
 namespace WebMessage.Server
@@ -27,37 +27,16 @@ namespace WebMessage.Server
 
             internal virtual string CreateResponse<TResponse>(Message request, TResponse response)
             {
-                var responseMessage = new Message<TResponse>
+                if (request.Uri != Uri)
                 {
-                    Uri = request.Uri,
-                    Id = request.Id,
-                    Type = "response",
-                    Payload = response,
-                };
-                return CreateMessage(responseMessage);
+                    throw new InvalidOperationException($@"The actual request 'Uri: {request.Uri}' does not match the registered 'Uri: {Uri}'");
+                }
+                return response.CreateMessage(Message.RequestTypeResponse, request.Uri, request.Id).ToJson();
             }
 
             internal virtual string CreateError(Message request, string error)
             {
-                var responseMessage = new Message
-                {
-                    Uri = request.Uri,
-                    Id = request.Id,
-                    Type = Message.ResponseTypeError,
-                };
-                return CreateMessage(responseMessage);
-            }
-
-            internal virtual string CreateMessage<TMessage>(TMessage response) where TMessage : Message
-            {
-                var options = new JsonSerializerOptions
-                {
-                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-#if DEBUG
-                    WriteIndented = true,
-#endif
-                };
-                return JsonSerializer.Serialize(response, options);
+                return request.CreateError(error).ToJson();
             }
         }
 
@@ -162,32 +141,6 @@ namespace WebMessage.Server
             _messageTypeResolver.Remove(uri);
         }
 
-        public Task<bool> SendAsync<TResponse>(string clientId, TResponse response)
-        {
-            ArgumentNullException.ThrowIfNullOrEmpty(clientId);
-
-            var requestInfo = _registeredRequests.FirstOrDefault(r => r.ResponseType == typeof(TResponse));
-            if (requestInfo is null)
-            {
-                throw new InvalidOperationException($@"Cannot send a response that has not been registered: {typeof(TResponse)}");
-            }
-
-            var connection = _connections.FirstOrDefault(c => c.Id == clientId);
-            if (connection is null)
-            {
-                return Task.FromResult(false);
-            }
-
-            requestInfo.CreateResponse
-            if (response is null)
-            {
-                //_registeredRequests.
-            }
-
-            //SerializeRequest(response);
-            return connection?.SendAsync("") ?? Task.FromResult(false);
-        }
-
         internal async Task<string> HandleRequest(string clientId, string message)
         {
             var request = DeserializeRequest(message);
@@ -195,7 +148,7 @@ namespace WebMessage.Server
             {
                 var response = new Message
                 {
-                    Id = "",
+                    Id = string.Empty,
                     Type = Message.ResponseTypeError,
                     Error = $@"Unsupported request: {message}"
                 };

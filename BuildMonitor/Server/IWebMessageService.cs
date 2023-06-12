@@ -11,7 +11,5 @@
         void RegisterRequestHandler<TRequest, TResponse>(string uri, RequestHandler<TRequest, TResponse> handler);
 
         void UnregisterRequest(string uri);
-
-        Task<bool> SendAsync<TResponse>(string clientId, TResponse response);
     }
 }

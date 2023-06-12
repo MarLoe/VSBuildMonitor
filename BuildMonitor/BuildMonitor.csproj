@@ -16,12 +16,14 @@
     <None Remove="Messages\" />
     <None Remove="Server\Implementations\" />
     <None Remove="Client\Implementations\" />
+    <None Remove="Extensions\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Certificate\" />
     <Folder Include="Messages\" />
     <Folder Include="Server\Implementations\" />
     <Folder Include="Client\Implementations\" />
+    <Folder Include="Extensions\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Certificate\server.pfx">
