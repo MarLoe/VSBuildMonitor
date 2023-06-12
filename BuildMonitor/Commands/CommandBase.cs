@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace BuildMonitor.Commands
+namespace WebMessage.Commands
 {
 
     public interface ICommand

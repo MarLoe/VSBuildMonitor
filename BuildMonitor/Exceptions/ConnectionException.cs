@@ -1,4 +1,4 @@
-﻿namespace BuildMonitor.Exceptions
+﻿namespace WebMessage.Exceptions
 {
     public class ConnectionException : Exception
     {

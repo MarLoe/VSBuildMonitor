@@ -1,6 +1,6 @@
-﻿using BuildMonitor.Device;
+﻿using WebMessage.Device;
 
-namespace BuildMonitor.Client
+namespace WebMessage.Client
 {
     /// <summary>
     /// Socket connection for talking to a WebOS device.

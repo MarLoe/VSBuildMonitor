@@ -1,7 +1,7 @@
-﻿using BuildMonitor.Device;
+﻿using WebMessage.Device;
 using WebSocketSharp;
 
-namespace BuildMonitor.Client
+namespace WebMessage.Client
 {
     public class SocketConnection : ISocketConnection
     {

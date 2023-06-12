@@ -1,11 +1,12 @@
 ﻿
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using WebMessage.Messages;
 
-namespace BuildMonitor.Messages
+namespace WebMessage.Server
 {
 
-    internal class RequestManager : IRequestManager
+    internal class WebMessageService : IWebMessageService
     {
         protected abstract class RequestInfoBase
         {
@@ -13,15 +14,18 @@ namespace BuildMonitor.Messages
 
             public Type RequestType { get; }
 
-            public RequestInfoBase(string uri, Type requestType)
+            public Type ResponseType { get; }
+
+            public RequestInfoBase(string uri, Type requestType, Type responseType)
             {
                 Uri = uri;
                 RequestType = requestType;
+                ResponseType = responseType;
             }
 
             public abstract Task<string?> HandleRequest(string clientId, Message message);
 
-            protected virtual string CreateResponse<TResponse>(Message request, TResponse response)
+            internal virtual string CreateResponse<TResponse>(Message request, TResponse response)
             {
                 var responseMessage = new Message<TResponse>
                 {
@@ -33,7 +37,7 @@ namespace BuildMonitor.Messages
                 return CreateMessage(responseMessage);
             }
 
-            protected virtual string CreateError(Message request, string error)
+            internal virtual string CreateError(Message request, string error)
             {
                 var responseMessage = new Message
                 {
@@ -44,7 +48,7 @@ namespace BuildMonitor.Messages
                 return CreateMessage(responseMessage);
             }
 
-            protected virtual string CreateMessage<TMessage>(TMessage response) where TMessage : Message
+            internal virtual string CreateMessage<TMessage>(TMessage response) where TMessage : Message
             {
                 var options = new JsonSerializerOptions
                 {
@@ -61,7 +65,7 @@ namespace BuildMonitor.Messages
         {
             public RequestHandler<TResponse> Handler { get; set; }
 
-            public RequestInfo(string uri, RequestHandler<TResponse> handler) : base(uri, typeof(Message))
+            public RequestInfo(string uri, RequestHandler<TResponse> handler) : base(uri, typeof(Message), typeof(TResponse))
             {
                 Handler = handler;
             }
@@ -84,7 +88,7 @@ namespace BuildMonitor.Messages
         {
             public RequestHandler<TRequest, TResponse> Handler { get; set; }
 
-            public RequestInfo(string uri, RequestHandler<TRequest, TResponse> handler) : base(uri, typeof(Message<TRequest>))
+            public RequestInfo(string uri, RequestHandler<TRequest, TResponse> handler) : base(uri, typeof(Message<TRequest>), typeof(TResponse))
             {
                 Handler = handler;
             }
@@ -107,13 +111,15 @@ namespace BuildMonitor.Messages
             }
         }
 
-        private readonly HashSet<RequestInfoBase> _registeredRequests;
+        private readonly List<RequestInfoBase> _registeredRequests;
         private readonly MessageTypeResolver _messageTypeResolver;
+        private readonly List<IWebMessageConnection> _connections;
 
-        public RequestManager()
+        public WebMessageService()
         {
             _registeredRequests = new();
             _messageTypeResolver = new();
+            _connections = new();
         }
 
         public void RegisterRequestHandler<TResponse>(string uri, RequestHandler<TResponse> handler)
@@ -152,11 +158,37 @@ namespace BuildMonitor.Messages
 
         public void UnregisterRequest(string uri)
         {
-            _registeredRequests.RemoveWhere(r => r.Uri == uri);
+            _registeredRequests.RemoveAll(r => r.Uri == uri);
             _messageTypeResolver.Remove(uri);
         }
 
-        public async Task<string> HandleRequest(string clientId, string message)
+        public Task<bool> SendAsync<TResponse>(string clientId, TResponse response)
+        {
+            ArgumentNullException.ThrowIfNullOrEmpty(clientId);
+
+            var requestInfo = _registeredRequests.FirstOrDefault(r => r.ResponseType == typeof(TResponse));
+            if (requestInfo is null)
+            {
+                throw new InvalidOperationException($@"Cannot send a response that has not been registered: {typeof(TResponse)}");
+            }
+
+            var connection = _connections.FirstOrDefault(c => c.Id == clientId);
+            if (connection is null)
+            {
+                return Task.FromResult(false);
+            }
+
+            requestInfo.CreateResponse
+            if (response is null)
+            {
+                //_registeredRequests.
+            }
+
+            //SerializeRequest(response);
+            return connection?.SendAsync("") ?? Task.FromResult(false);
+        }
+
+        internal async Task<string> HandleRequest(string clientId, string message)
         {
             var request = DeserializeRequest(message);
             if (request is null)
@@ -179,17 +211,43 @@ namespace BuildMonitor.Messages
             return result;
         }
 
-        internal string SerializeRequest<TRequest>(TRequest request) where TRequest : Message
+        internal void AddClient(IWebMessageConnection connection)
+        {
+            ArgumentNullException.ThrowIfNull(connection);
+            if (string.IsNullOrEmpty(connection.Id))
+            {
+                throw new ArgumentException("Cannot add client with no id", nameof(connection));
+            }
+
+            var existing = _connections.FirstOrDefault(c => c.Id == connection.Id);
+            if (existing is not null)
+            {
+                if (existing == connection)
+                {
+                    return;
+                }
+                throw new ArgumentException($@"Connection with id '{connection.Id}' already exists");
+            }
+            _connections.Add(connection);
+        }
+
+        internal void RemoveClient(IWebMessageConnection connection)
+        {
+            ArgumentNullException.ThrowIfNull(connection);
+            _connections.RemoveAll(c => c.Id == connection.Id);
+        }
+
+        protected string SerializeRequest<TRequest>(TRequest request) where TRequest : Message
         {
             return JsonSerializer.Serialize(request, CreateOptions());
         }
 
-        internal Message? DeserializeRequest(string request)
+        protected Message? DeserializeRequest(string request)
         {
             return JsonSerializer.Deserialize<Message>(request, CreateOptions());
         }
 
-        private JsonSerializerOptions CreateOptions()
+        protected JsonSerializerOptions CreateOptions()
         {
             return new JsonSerializerOptions
             {

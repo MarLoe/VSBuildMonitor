@@ -1,4 +1,4 @@
-﻿namespace BuildMonitor.Commands
+﻿namespace WebMessage.Commands
 {
     /// <summary>
     /// The basics of a response to a command.

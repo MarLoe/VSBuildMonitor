@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
-namespace BuildMonitor.Messages
+namespace WebMessage.Messages
 {
 
     internal class MessageTypeResolver : DefaultJsonTypeInfoResolver

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace BuildMonitor.Messages
+namespace WebMessage.Messages
 {
     /// <summary>
     /// The actual message format to be sent to the WebOS device.

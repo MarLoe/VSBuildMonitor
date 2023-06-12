@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace BuildMonitor.Commands.Api
+namespace WebMessage.Commands.Api
 {
     /// <summary>
     /// Command for establishing pairing

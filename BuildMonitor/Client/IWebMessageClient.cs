@@ -1,12 +1,12 @@
-﻿using BuildMonitor.Commands;
-using BuildMonitor.Device;
+﻿using WebMessage.Commands;
+using WebMessage.Device;
 
-namespace BuildMonitor.Client
+namespace WebMessage.Client
 {
     /// <summary>
-    /// Client for communicating with a WebOS device.
+    /// Client for communicating with a web message device.
     /// </summary>
-    public interface IBuildMonitorClient
+    public interface IWebMessageClient
     {
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace BuildMonitor.Client
 
 
     /// <summary>
-    /// Event arguments for <see cref="IBuildMonitorClient.ConnectionChanged"/>
+    /// Event arguments for <see cref="IWebMessageClient.ConnectionChanged"/>
     /// </summary>
     public class ConnectionChangedEventArgs : DeviceEventArgs
     {
@@ -124,15 +124,15 @@ namespace BuildMonitor.Client
 
 
     /// <summary>
-    /// Event arguemnts for <see cref="IBuildMonitorClient.PairingUpdated"/>.
+    /// Event arguemnts for <see cref="IWebMessageClient.PairingUpdated"/>.
     /// </summary>
     public class PairingUpdatedEventArgs : DeviceEventArgs
     {
-        public PairingUpdatedEventArgs(IDevice device, bool pairingKeyChanged) : base(device)
+        public PairingUpdatedEventArgs(IDevice device, string pairingKey) : base(device)
         {
-            PairingKeyChanged = pairingKeyChanged;
+            PairingKey = pairingKey;
         }
 
-        public bool PairingKeyChanged { get; }
+        public string PairingKey { get; }
     }
 }

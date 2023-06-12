@@ -1,4 +1,4 @@
-﻿namespace BuildMonitor.Device
+﻿namespace WebMessage.Device
 {
     /// <summary>
     /// Device information for the device to monitor.

@@ -1,18 +1,15 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.Json;
-using BuildMonitor.Commands;
-using BuildMonitor.Commands.Api;
-using BuildMonitor.Device;
-using BuildMonitor.Exceptions;
-using BuildMonitor.Messages;
+using WebMessage.Commands;
+using WebMessage.Commands.Api;
+using WebMessage.Device;
+using WebMessage.Exceptions;
+using WebMessage.Messages;
 
-namespace BuildMonitor.Client
+namespace WebMessage.Client
 {
-    public class BuildMonitorClient : IBuildMonitorClient, IDisposable
+    public class WebMessageClient : IWebMessageClient, IDisposable
     {
-        //private readonly IFactory<ISocketConnection> _socketFactory;
-        //private readonly ILogger<WebOSClient> _logger;
-
         private readonly ISocketConnection _socket;
 
         private readonly ConcurrentDictionary<string, TaskCompletionSource<Message>> _completionSources = new();
@@ -22,21 +19,7 @@ namespace BuildMonitor.Client
 
         public int CommandTimeout { get; set; } = 5000;
 
-        //public BuildMonitorClient() : this(new NullLogger<WebOSClient>())
-        //{
-        //}
-
-        //public BuildMonitorClient(ILogger<WebOSClient> logger) : this(new Factory<ISocketConnection>(() => new SocketConnection()), logger)
-        //{
-        //}
-
-        //internal BuildMonitorClient(IFactory<ISocketConnection> socketFactory, ILogger<WebOSClient> logger)
-        //{
-        //    _socketFactory = socketFactory;
-        //    _logger = logger;
-        //}
-
-        public BuildMonitorClient(ISocketConnection socketConnection)
+        public WebMessageClient(ISocketConnection socketConnection)
         {
             _socket = socketConnection ?? throw new ArgumentNullException(nameof(socketConnection));
         }
@@ -92,10 +75,8 @@ namespace BuildMonitor.Client
             var handshakeResponse = await SendCommandAsyncInternal<HandshakeCommand, HandshakeResponse>(new HandshakeCommand(_device.PairingKey), cancellationToken);
             if (handshakeResponse.ReturnValue)
             {
-                var updated = _device.PairingKey != handshakeResponse.Key;
                 IsPaired = true;
-                _device.PairingKey = handshakeResponse.Key;
-                PairingUpdated?.Invoke(this, new(_device, updated));
+                PairingUpdated?.Invoke(this, new(_device, handshakeResponse.Key));
             }
         }
 
