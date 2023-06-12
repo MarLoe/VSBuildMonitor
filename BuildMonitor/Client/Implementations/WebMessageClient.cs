@@ -139,27 +139,25 @@ namespace WebMessage.Client
             //_logger.LogTrace("Received: {data}", e.Data);
 
             var options = new JsonSerializerOptions { TypeInfoResolver = _responseOptions };
-            var response = JsonSerializer.Deserialize<Message>(e.Data, options);
-            if (response is null)
+            var message = JsonSerializer.Deserialize<Message>(e.Data, options);
+            if (message is null)
             {
                 InvalidMessage?.Invoke(this, new(_device!, e.Data));
                 return;
             }
 
-            if (PreProcessResponse(response) is false)
+            if (PreProcessMessage(message))
             {
-
-            }
-
-            if (_completionSources.TryRemove(response.Id, out var taskCompletion))
-            {
-                if (response.Type is Message.TypeError)
+                if (_completionSources.TryRemove(message.Id, out var taskCompletion))
                 {
-                    taskCompletion.TrySetException(new CommandException(response.Error ?? "Unknown error"));
-                }
-                else
-                {
-                    taskCompletion.TrySetResult(response);
+                    if (message.Type is Message.TypeError)
+                    {
+                        taskCompletion.TrySetException(new CommandException(message.Error ?? "Unknown error"));
+                    }
+                    else
+                    {
+                        taskCompletion.TrySetResult(message);
+                    }
                 }
             }
         }
@@ -225,7 +223,7 @@ namespace WebMessage.Client
             return new TResponse { ReturnValue = false };
         }
 
-        protected virtual bool PreProcessMessage<TResponse>(TResponse response, string uri, string type, string id) where TResponse : class, IResponse, new()
+        protected virtual bool PreProcessResponse(object? response, string uri, string type, string id)
         {
             return true;
         }
@@ -238,6 +236,18 @@ namespace WebMessage.Client
                 _socket.OnDisconnected -= OnSocketDisconnect;
                 _socket.Close();
             }
+        }
+
+        #endregion
+
+
+        #region Private Helper Methods
+
+        private bool PreProcessMessage(Message message)
+        {
+            var propertyInfo = message.GetType().GetProperty(nameof(Message<object>.Payload));
+            var payload = propertyInfo?.GetValue(message);
+            return PreProcessResponse(payload, message.Uri, message.Type, message.Id);
         }
 
         #endregion
