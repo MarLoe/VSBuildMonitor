@@ -5,7 +5,6 @@ using WebMessage.Messages;
 
 namespace WebMessage.Server
 {
-
     internal class WebMessageService : IWebMessageService
     {
         protected abstract class RequestInfoBase
@@ -139,7 +138,7 @@ namespace WebMessage.Server
             _messageTypeResolver.Add<TRequest>(uri);
         }
 
-        public void UnregisterRequest(string uri)
+        public void UnregisterRequestHandler(string uri)
         {
             _registeredRequests.RemoveAll(r => r.Uri == uri);
             _messageTypeResolver.Remove(uri);
