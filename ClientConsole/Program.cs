@@ -14,7 +14,7 @@ namespace ClientConsole
             var server = new WebMessageServer();
             var service = server.AddService("/", r =>
             {
-                var key = $@"MARTIN {Guid.NewGuid().ToString()}";
+                var key = $@"MARTIN {Guid.NewGuid()}";
                 Console.WriteLine($@"Generate: {key}");
                 return Task.FromResult(key);
             });
@@ -25,7 +25,6 @@ namespace ClientConsole
             };
 
             var device = new WebMessageDevice { HostName = "localhost", Port = 13000 };
-            var _socket = new SocketConnection();
 
             var clients = new[]
             {

@@ -21,7 +21,6 @@ namespace BuildMonitor.Extensions
         {
             var responseMessage = new Message
             {
-                Uri = request.Uri,
                 Id = request.Id,
                 Type = Message.TypeResponse,
             };
@@ -33,12 +32,11 @@ namespace BuildMonitor.Extensions
             return payload.CreateMessage(Message.TypeResponse, request.Uri, request.Id);
         }
 
-        public static Message CreateError(this Message request, string error)
+        public static Message CreateError(this Message? request, string error)
         {
             return new Message
             {
-                Uri = request.Uri,
-                Id = request.Id,
+                Id = request?.Id ?? string.Empty,
                 Type = Message.TypeError,
                 Error = error,
             };

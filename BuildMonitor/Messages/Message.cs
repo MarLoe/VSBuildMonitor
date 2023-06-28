@@ -11,6 +11,8 @@ namespace WebMessage.Messages
 
         public const string TypeSubscribe = "subscribe";
 
+        public const string TypeUnsubscribe = "unsubscribe";
+
         public const string TypeResponse = "response";
 
         public const string TypeError = "error";

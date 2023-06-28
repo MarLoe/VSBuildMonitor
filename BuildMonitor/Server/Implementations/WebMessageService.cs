@@ -15,14 +15,35 @@ namespace WebMessage.Server
 
             public Type ResponseType { get; }
 
+            public List<string> Subscriptions { get; }
+
             public RequestInfoBase(string uri, Type requestType, Type responseType)
             {
                 Uri = uri;
                 RequestType = requestType;
                 ResponseType = responseType;
+                Subscriptions = new();
             }
 
             public abstract Task<string?> HandleRequest(string clientId, Message message);
+
+            public bool HandleSubscribe(string clientId, Message message)
+            {
+                if (message.Type is Message.TypeUnsubscribe)
+                {
+                    Subscriptions.Remove(clientId);
+                    return true;
+                }
+                if (message.Type is Message.TypeSubscribe)
+                {
+                    if (!Subscriptions.Contains(clientId))
+                    {
+                        Subscriptions.Add(clientId);
+                    }
+                    return true;
+                }
+                return false;
+            }
 
             internal virtual string CreateResponse<TResponse>(Message request, TResponse response)
             {
@@ -53,7 +74,7 @@ namespace WebMessage.Server
                 try
                 {
                     var response = await Handler(clientId, message.Id, message.Type);
-                    return CreateResponse<TResponse>(message, response);
+                    return CreateResponse(message, response);
                 }
                 catch (Exception ex)
                 {
@@ -78,7 +99,7 @@ namespace WebMessage.Server
                     try
                     {
                         var response = await Handler(clientId, message.Id, message.Type, request.Payload!);
-                        return CreateResponse<TResponse>(message, response);
+                        return CreateResponse(message, response);
                     }
                     catch (Exception ex)
                     {
@@ -175,27 +196,40 @@ namespace WebMessage.Server
             return connection?.BroadcastAsync(message.ToJson()) ?? Task.FromResult(false);
         }
 
-
         internal async Task<string> HandleRequest(string clientId, string message)
         {
             var request = DeserializeRequest(message);
             if (request is null)
             {
-                var response = new Message
-                {
-                    Id = string.Empty,
-                    Type = Message.TypeError,
-                    Error = $@"Unsupported request: {message}"
-                };
-                return JsonSerializer.Serialize(response);
+                return JsonSerializer.Serialize(request.CreateError($@"Unsupported request: {message}"));
             }
-            var requestType = request.GetType();
-            var requestInfo = _registeredRequests.FirstOrDefault(ri => ri.RequestType == requestType);
-            var result = await (requestInfo?.HandleRequest(clientId, request) ?? Task.FromResult<string?>(null));
+
+            if (request.Type is Message.TypeResponse or Message.TypeError)
+            {
+                return JsonSerializer.Serialize(request.CreateError($@"Unsupported request type: {request.Type}"));
+            }
+
+            var requestInfo = _registeredRequests.FirstOrDefault(ri => ri.Uri == request.Uri);
+            if (requestInfo is null)
+            {
+                return JsonSerializer.Serialize(request.CreateError($@"Invalid request uri: {request.Uri}"));
+            }
+
+            if (request.Type is Message.TypeSubscribe or Message.TypeUnsubscribe)
+            {
+                if (requestInfo.HandleSubscribe(clientId, request))
+                {
+                    return JsonSerializer.Serialize(request.CreateResponse());
+                }
+                return JsonSerializer.Serialize(request.CreateError($@"Unable to {request.Type} to {request.Uri}"));
+            }
+
+            var result = await requestInfo.HandleRequest(clientId, request);
             if (string.IsNullOrWhiteSpace(result))
             {
                 throw new InvalidOperationException("Request must be handled correctly");
             }
+
             return result;
         }
 
