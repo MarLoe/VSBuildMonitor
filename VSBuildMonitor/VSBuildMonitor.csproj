@@ -19,12 +19,6 @@
 		<AddinReference Include="Microsoft.VisualStudioMac.AddinMaker" />
 	</ItemGroup>
 	<ItemGroup>
-	  <None Remove="WebSocketServer\" />
-	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="WebSocketServer\" />
-	</ItemGroup>
-	<ItemGroup>
-	  <ProjectReference Include="..\WebSocketServer\WebSocketServer.csproj" />
+	  <ProjectReference Include="..\BuildMonitor\BuildMonitor.csproj" />
 	</ItemGroup>
 </Project>
