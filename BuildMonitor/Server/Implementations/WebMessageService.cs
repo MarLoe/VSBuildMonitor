@@ -146,13 +146,9 @@ namespace WebMessage.Server
 
         public Task<bool> SendAsync<TResponse>(string clientId, TResponse response)
         {
-            ArgumentNullException.ThrowIfNullOrEmpty(clientId);
+            ArgumentException.ThrowIfNullOrEmpty(clientId);
 
-            var requestInfo = _registeredRequests.FirstOrDefault(r => r.ResponseType == typeof(TResponse));
-            if (requestInfo is null)
-            {
-                throw new InvalidOperationException($@"Cannot send a response that has not been registered: {typeof(TResponse)}");
-            }
+            var requestInfo = FindRequestInfo<TResponse>();
 
             var connection = _connections.FirstOrDefault(c => c.Id == clientId);
             if (connection is null)
@@ -166,11 +162,7 @@ namespace WebMessage.Server
 
         public Task<bool> BroadcastAsync<TResponse>(TResponse response)
         {
-            var requestInfo = _registeredRequests.FirstOrDefault(r => r.ResponseType == typeof(TResponse));
-            if (requestInfo is null)
-            {
-                throw new InvalidOperationException($@"Cannot send a response that has not been registered: {typeof(TResponse)}");
-            }
+            var requestInfo = FindRequestInfo<TResponse>();
 
             var connection = _connections.FirstOrDefault();
             if (connection is null)
@@ -233,6 +225,12 @@ namespace WebMessage.Server
             ArgumentNullException.ThrowIfNull(connection);
             _connections.RemoveAll(c => c.Id == connection.Id);
             ClientDisconnected?.Invoke(this, new(connection.Id));
+        }
+
+        protected RequestInfoBase FindRequestInfo<TResponse>()
+        {
+            return _registeredRequests.FirstOrDefault(r => r.ResponseType == typeof(TResponse))
+                ?? throw new InvalidOperationException($@"Cannot send a response that has not been registered: {typeof(TResponse)}");
         }
 
         protected string SerializeRequest<TRequest>(TRequest request) where TRequest : Message
