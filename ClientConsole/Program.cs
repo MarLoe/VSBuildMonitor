@@ -18,6 +18,11 @@ namespace ClientConsole
                 Console.WriteLine($@"Generate: {key}");
                 return Task.FromResult(key);
             });
+            service.RegisterRequestHandler<BuildProgressCommand, BuildProgressResponse>("build/progress", (cid, mid, type, req) =>
+            {
+                Console.WriteLine($@"Handler: {nameof(BuildProgressCommand)} ({cid})");
+                return Task.FromResult(new BuildProgressResponse(0.1f));
+            });
             service.ClientConnected += (s, e) =>
             {
                 clientId = e.Id;
@@ -39,18 +44,33 @@ namespace ClientConsole
                 {
                     Console.WriteLine($@"Received: {e.PairingKey}");
                 };
+                Console.WriteLine($@"Attach: {device.IPAddress}");
                 await client.AttachAsync(device);
             }
 
-            await Task.WhenAll(clients.Select(c => c.ConnectAsync()));
+            await Task.WhenAll(clients.Select(c =>
+            {
+                Console.WriteLine($@"Connect: {device.IPAddress}");
+                return c.ConnectAsync();
+            }));
 
             foreach (var client in clients)
             {
+                Console.WriteLine($@"Subscribe: {nameof(BuildProgressCommand)} ({device.IPAddress})");
                 await client.SubscribeCommandAsync<BuildProgressCommand, BuildProgressResponse>(new(), r =>
                 {
                     Console.WriteLine($@"Event: {r.ReturnValue}");
                 }, default);
             }
+
+            var buildProgress = await Task.WhenAll(clients.Select(c =>
+            {
+                Console.WriteLine($@"SendCommand: {nameof(BuildProgressCommand)} ({device.IPAddress})");
+                return c.SendCommandAsync<BuildProgressCommand, BuildProgressResponse>(new());
+            }));
+            Console.WriteLine(string.Join("; ", buildProgress.Select(p => $@"{p}")));
+
+            await service.RaiseEventAsync(new BuildProgressResponse(0.1f));
 
             await service.SendAsync(clientId, new HandshakeResponse { Key = "Just you!" });
 

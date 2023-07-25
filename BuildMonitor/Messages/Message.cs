@@ -15,14 +15,22 @@ namespace WebMessage.Messages
 
         public const string TypeResponse = "response";
 
+        public const string TypeEvent = "event";
+
         public const string TypeError = "error";
 
+
+        /// <summary>
+        /// The uri of the message identifying the command being sent.
+        /// </summary>
+        [JsonPropertyOrder(int.MinValue), JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public string Uri { get; set; } = string.Empty;
 
         /// <summary>
         /// The id of the message. Resposed will be tagged
         /// with the same id to match request/response.
         /// </summary>
-        [JsonPropertyOrder(1), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyOrder(int.MinValue + 1), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string Id { get; set; } = GenerateId();
 
         /// <summary>
@@ -31,12 +39,6 @@ namespace WebMessage.Messages
         /// </summary>
         [JsonPropertyOrder(2)]
         public string Type { get; set; } = TypeReqest;
-
-        /// <summary>
-        /// The uri of the message identifying the command being sent.
-        /// </summary>
-        [JsonPropertyOrder(0), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string Uri { get; set; } = string.Empty;
 
         /// <summary>
         /// Error status when the message is recieved as a response.
@@ -56,18 +58,8 @@ namespace WebMessage.Messages
         /// <summary>
         /// The payload of the message (e.g. command json)
         /// </summary>
-        [JsonPropertyOrder(99), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyOrder(int.MaxValue), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TPayload? Payload { get; set; }
-    }
-
-    public class HandshakeRequest
-    {
-        public string? Token { get; set; }
-    }
-
-    public class BuildRequest
-    {
-        public bool Rebuild { get; set; }
     }
 
 }

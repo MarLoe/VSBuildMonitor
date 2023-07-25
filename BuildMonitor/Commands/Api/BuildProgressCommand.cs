@@ -1,7 +1,7 @@
 ﻿namespace WebMessage.Commands.Api
 {
     /// <summary>
-    /// Command for establishing pairing
+    /// 
     /// </summary>
     public class BuildProgressCommand : CommandBase
     {
@@ -13,13 +13,25 @@
     }
 
     /// <summary>
-    /// Response for <seealso cref="HandshakeCommand"/>.
+    /// Response for <seealso cref="BuildProgressCommand"/>.
     /// </summary>
     public class BuildProgressResponse : ResponseBase
     {
         public BuildProgressResponse()
         {
+        }
+
+        public BuildProgressResponse(float progress)
+        {
+            Progress = progress;
             ReturnValue = true;
         }
+
+        public float Progress
+        {
+            get;
+            private set;
+        }
+
     }
 }

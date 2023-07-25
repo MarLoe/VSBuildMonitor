@@ -17,10 +17,48 @@ namespace BuildMonitor.Extensions
             return JsonSerializer.Serialize(message, options);
         }
 
+        public static string ToResponseJson<TResponse>(this TResponse response) where TResponse : Message
+        {
+            var options = new JsonSerializerOptions
+            {
+                TypeInfoResolver = new ResponseTypeResolver(response.Id, typeof(TResponse))
+            };
+            return response.ToJson(options);
+        }
+
+        public static Message? FromJson(this string data, JsonSerializerOptions? options = null)
+        {
+            return data.FromJson<Message>(options);
+        }
+
+        public static TMessage? FromJson<TMessage>(this string data, JsonSerializerOptions? options = null) where TMessage : Message
+        {
+            options ??= new JsonSerializerOptions();
+            try
+            {
+                return JsonSerializer.Deserialize<TMessage>(data, options);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
+                return null;
+            }
+        }
+
+        public static Message? FromResponseJson(this string data, IDictionary<string, Type> typeDiscriminators)
+        {
+            var options = new JsonSerializerOptions
+            {
+                TypeInfoResolver = new ResponseTypeResolver(typeDiscriminators)
+            };
+            return data.FromJson<Message>(options);
+        }
+
         public static Message CreateResponse(this Message request)
         {
             var responseMessage = new Message
             {
+                Uri = request.Uri,
                 Id = request.Id,
                 Type = Message.TypeResponse,
             };
@@ -36,6 +74,7 @@ namespace BuildMonitor.Extensions
         {
             return new Message
             {
+                Uri = request?.Uri ?? string.Empty,
                 Id = request?.Id ?? string.Empty,
                 Type = Message.TypeError,
                 Error = error,

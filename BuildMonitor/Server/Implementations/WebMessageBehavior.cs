@@ -76,8 +76,15 @@ namespace WebMessage.Server
         {
             if (e.Data is not null)
             {
-                var response = await RequestManager!.HandleRequest(ID, e.Data);
-                await SendAsync(response);
+                try
+                {
+                    var response = await RequestManager!.HandleRequest(ID, e.Data);
+                    await SendAsync(response);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(ex);
+                }
             }
         }
 

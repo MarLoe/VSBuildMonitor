@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 using WebMessage.Commands.Api;
-using WebMessage.Messages;
 using WebSocketSharp;
 using WebSocketSharp.Server;
 
@@ -55,9 +54,9 @@ namespace WebMessage.Server
 
         private readonly ConcurrentDictionary<string, WebMessageService> _requestManagers = new();
 
-        public IWebMessageService AddService(string path, Func<HandshakeRequest, Task<string>>? pairingRequest = null)
+        public IWebMessageService AddService(string path, Func<HandshakeCommand, Task<string>>? pairingRequest = null)
         {
-            async Task<HandshakeResponse> HandshakeRequestHandler(string clientId, string messageId, string messageType, HandshakeRequest request)
+            async Task<HandshakeResponse> HandshakeRequestHandler(string clientId, string messageId, string messageType, HandshakeCommand request)
             {
                 var response = new HandshakeResponse();
                 if (pairingRequest is null)
@@ -78,7 +77,7 @@ namespace WebMessage.Server
                 throw new ArgumentException($@"A service with the path: '{path}' is already registered", nameof(path));
             }
 
-            requestManager.RegisterRequestHandler<HandshakeRequest, HandshakeResponse>(string.Empty, HandshakeRequestHandler);
+            requestManager.RegisterRequestHandler<HandshakeCommand, HandshakeResponse>(string.Empty, HandshakeRequestHandler);
             _server.AddWebSocketService<WebMessageBehavior>(path, b =>
             {
                 System.Diagnostics.Debug.WriteLine(b.ID);
