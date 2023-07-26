@@ -34,8 +34,8 @@ namespace ClientConsole
             var clients = new[]
             {
                 new WebMessageClient(new SocketConnection()),
-                new WebMessageClient(new SocketConnection()),
-                new WebMessageClient(new SocketConnection()),
+                //new WebMessageClient(new SocketConnection()),
+                //new WebMessageClient(new SocketConnection()),
             };
 
             foreach (var client in clients)
@@ -70,7 +70,7 @@ namespace ClientConsole
             }));
             Console.WriteLine(string.Join("; ", buildProgress.Select(p => $@"{p}")));
 
-            await service.RaiseEventAsync(new BuildProgressResponse(0.1f));
+            await service.RaiseEventAsync(new BuildProgressResponse(0.2f));
 
             await service.SendAsync(clientId, new HandshakeResponse { Key = "Just you!" });
 
