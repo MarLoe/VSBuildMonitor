@@ -53,8 +53,6 @@ namespace WebMessage.Messages
 
     internal abstract class MessageTypeResolver : DefaultJsonTypeInfoResolver
     {
-        //protected readonly List<JsonDerivedType> _derivedTypes;
-
         protected readonly ConcurrentDictionary<string, Type> _types = new();
 
         protected abstract string TypeDiscriminator { get; }
@@ -65,7 +63,6 @@ namespace WebMessage.Messages
 
         internal MessageTypeResolver()
         {
-            //_derivedTypes = new();
             Modifiers.Add(IgnoreProperties);
         }
 
@@ -101,27 +98,11 @@ namespace WebMessage.Messages
         public void Remove(string typeDiscriminator)
         {
             _types.TryRemove(typeDiscriminator, out var _);
-            //lock (_derivedTypes)
-            //{
-            //    _derivedTypes.RemoveAll(d => d.TypeDiscriminator as string == typeDiscriminator);
-            //}
         }
 
         protected void AddMessage<TMessage>(string typeDiscriminator) where TMessage : Message
         {
             _types.AddOrUpdate(typeDiscriminator, typeof(TMessage), (_, _) => typeof(TMessage));
-            //lock (_derivedTypes)
-            //{
-            //    var dt = _derivedTypes.FirstOrDefault(t => typeDiscriminator.Equals(t.TypeDiscriminator));
-            //    if (dt.TypeDiscriminator is not null)
-            //    {
-            //        // We found an existing type discriminator
-            //        return dt.DerivedType == typeof(TMessage);
-            //    }
-
-            //    _derivedTypes.Add(new(typeof(TMessage), typeDiscriminator));
-            //    return true;
-            //}
         }
 
         protected virtual void ModifyJsonTypeInfo(Type type, JsonSerializerOptions options, JsonTypeInfo jsonTypeInfo)
@@ -151,14 +132,6 @@ namespace WebMessage.Messages
             {
                 options.DerivedTypes.Add(new(derivedType.Value, derivedType.Key));
             }
-
-            //lock (_derivedTypes)
-            //{
-            //    foreach (var derivedType in _derivedTypes.Where(t => type.IsAssignableFrom(t.DerivedType)))
-            //    {
-            //        options.DerivedTypes.Add(derivedType);
-            //    }
-            //}
 
             return options;
         }

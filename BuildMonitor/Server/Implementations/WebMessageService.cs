@@ -96,7 +96,7 @@ namespace WebMessage.Server
         {
             var requestInfo = FindRequestInfo<TResponse>();
             var message = response.CreateMessage(Message.TypeEvent, requestInfo.Uri, string.Empty);
-            var data = message.ToJson();
+            var data = message.ToResponseJson();
             var sendTasks = _connections
                 .Where(c => requestInfo.Subscriptions.Contains(c.Id))
                 .Select(c => c.SendAsync(data));
