@@ -5,65 +5,17 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace WebMessage.Messages
 {
-    internal class RequestTypeResolver : MessageTypeResolver
-    {
-        internal RequestTypeResolver()
-        {
-        }
-
-        internal RequestTypeResolver(string typeDiscriminator, Type type) : this(new Dictionary<string, Type> { [typeDiscriminator] = type })
-        {
-        }
-
-        internal RequestTypeResolver(IDictionary<string, Type> derivedTypes) : base(derivedTypes)
-        {
-        }
-
-        protected override string TypeDiscriminator => nameof(Message.Uri);
-
-        protected override void SetTypeDiscriminator(Message message, string typeDiscriminator)
-        {
-            message.Uri = typeDiscriminator;
-        }
-    }
-
-    internal class ResponseTypeResolver : MessageTypeResolver
-    {
-        internal ResponseTypeResolver()
-        {
-        }
-
-        internal ResponseTypeResolver(string typeDiscriminator, Type type) : this(new Dictionary<string, Type> { [typeDiscriminator] = type })
-        {
-        }
-
-        internal ResponseTypeResolver(IDictionary<string, Type> derivedTypes) : base(derivedTypes)
-        {
-        }
-
-        protected override string TypeDiscriminator => nameof(Message.Id);
-
-        protected override List<string> IgnoredProperties => new() { nameof(Message.Uri) };
-
-        protected override void SetTypeDiscriminator(Message message, string typeDiscriminator)
-        {
-            message.Id = typeDiscriminator;
-        }
-    }
-
-    internal abstract class MessageTypeResolver : DefaultJsonTypeInfoResolver
+    internal class MessageTypeResolver : DefaultJsonTypeInfoResolver
     {
         protected readonly ConcurrentDictionary<string, Type> _types = new();
 
-        protected abstract string TypeDiscriminator { get; }
-
-        protected virtual List<string> IgnoredProperties => new() { };
+        protected virtual string TypeDiscriminator { get; } = nameof(Message.Uri);
 
         internal ConcurrentDictionary<string, Type> Types => _types;
 
         internal MessageTypeResolver()
         {
-            Modifiers.Add(IgnoreProperties);
+            Modifiers.Add(IgnoreTypeDiscriminator);
         }
 
         internal MessageTypeResolver(string typeDiscriminator, Type type) : this(new Dictionary<string, Type> { [typeDiscriminator] = type })
@@ -100,7 +52,7 @@ namespace WebMessage.Messages
             _types.TryRemove(typeDiscriminator, out var _);
         }
 
-        protected void AddMessage<TMessage>(string typeDiscriminator) where TMessage : Message
+        protected virtual void AddMessage<TMessage>(string typeDiscriminator) where TMessage : Message
         {
             _types.AddOrUpdate(typeDiscriminator, typeof(TMessage), (_, _) => typeof(TMessage));
         }
@@ -117,7 +69,10 @@ namespace WebMessage.Messages
             };
         }
 
-        protected abstract void SetTypeDiscriminator(Message message, string typeDiscriminator);
+        protected virtual void SetTypeDiscriminator(Message message, string typeDiscriminator)
+        {
+            message.Uri = typeDiscriminator;
+        }
 
         private JsonPolymorphismOptions CreateOptions(Type type)
         {
@@ -136,15 +91,12 @@ namespace WebMessage.Messages
             return options;
         }
 
-        private void IgnoreProperties(JsonTypeInfo info)
+        private void IgnoreTypeDiscriminator(JsonTypeInfo info)
         {
-            foreach (var ignoredProperty in IgnoredProperties.Append(TypeDiscriminator))
+            var propertyInfo = info.Properties.FirstOrDefault(p => p.Name == TypeDiscriminator);
+            if (propertyInfo is not null)
             {
-                var propertyInfo = info.Properties.FirstOrDefault(p => p.Name == ignoredProperty);
-                if (propertyInfo is not null)
-                {
-                    info.Properties.Remove(propertyInfo);
-                }
+                info.Properties.Remove(propertyInfo);
             }
         }
 

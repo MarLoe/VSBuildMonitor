@@ -8,7 +8,7 @@ namespace WebMessage.Server
     internal class WebMessageService : IWebMessageService
     {
         private readonly List<RequestInfoBase> _registeredRequests;
-        private readonly RequestTypeResolver _messageTypeResolver;
+        private readonly MessageTypeResolver _messageTypeResolver;
         private readonly List<IWebMessageConnection> _connections;
 
         public WebMessageService()

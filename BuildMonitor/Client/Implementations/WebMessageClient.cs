@@ -14,6 +14,7 @@ namespace WebMessage.Client
 
         private readonly ConcurrentDictionary<string, TaskCompletionSource<Message>> _completionSources = new();
         private readonly ConcurrentDictionary<string, Type> _typeDiscriminators = new();
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Action<Message>>> _eventHandlers = new();
 
         private IDevice? _device;
 
@@ -156,7 +157,24 @@ namespace WebMessage.Client
                         taskCompletion.TrySetResult(message);
                     }
                 }
+                else
+                {
+                    // It is not a response for a pending command.
+                    if (message.Type is Message.TypeEvent)
+                    {
+                        Task.Run(() => HandleEvent(message));
+                    }
+                }
             }
+        }
+
+        private void HandleEvent(Message message)
+        {
+            if (_eventHandlers.TryGetValue(message.Uri, out var commandEventHandlers))
+            {
+                commandEventHandlers.Values.ToList().ForEach(h => h(message));
+            }
+            System.Diagnostics.Debug.WriteLine(message);
         }
 
         protected void OnSocketDisconnect(object? sender, EventArgs e)
@@ -188,16 +206,29 @@ namespace WebMessage.Client
         /// </summary>
         protected virtual async Task<bool> SubscribeCommandInternalAsync<TCommand, TResponse>(TCommand command, Action<TResponse> eventHandler, CancellationToken cancellationToken) where TCommand : ICommand where TResponse : class, IResponse, new()
         {
-            // TODO: Register eventHandler for receiveing events
             var request = command.CreateMessage(Message.TypeSubscribe, command.Uri);
-            var response = await SendMessageAsync<Message<TCommand>, Message>(request, cancellationToken);
-            return response is not null;
+
+            var response = await SendMessageAsync<Message<TCommand>, Message<TResponse>>(request, cancellationToken);
+            if (response is null)
+            {
+                return false;
+            }
+
+            var commandEventHandlers = _eventHandlers.GetOrAdd(command.Uri, _ => new());
+            return commandEventHandlers.TryAdd(request.Id, m =>
+            {
+                if (m is Message<TResponse> { Payload: { } payload })
+                {
+                    eventHandler(payload);
+                }
+            });
         }
 
         protected virtual bool PreProcessResponse(object? response, string uri, string type, string id)
         {
             return true;
         }
+
 
         protected virtual async Task ValidateConnectionAsync()
         {
@@ -240,9 +271,10 @@ namespace WebMessage.Client
                 throw new CommandException($@"There is already a pending command with id: {message.Id}");
             }
 
-            if (_typeDiscriminators.TryAdd(message.Id, typeof(TResponse)) is false)
+            var existingType = _typeDiscriminators.GetOrAdd(message.Uri, typeof(TResponse));
+            if (existingType != typeof(TResponse))
             {
-                throw new CommandException($@"There is already a registered command with id: {message.Id}");
+                throw new CommandException($@"There is already a registered command with discriminator: {message.Uri} for a different type ({existingType})");
             }
 
             using var ctr = cancellationToken.Register(() =>
@@ -273,13 +305,13 @@ namespace WebMessage.Client
                     return response;
                 }
             }
+            catch (TimeoutException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(ex);
-            }
-            finally
-            {
-                _typeDiscriminators.TryRemove(message.Id, out var _);
             }
 
             return null;

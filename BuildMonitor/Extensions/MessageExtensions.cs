@@ -21,7 +21,7 @@ namespace BuildMonitor.Extensions
         {
             var options = new JsonSerializerOptions
             {
-                TypeInfoResolver = new ResponseTypeResolver(response.Id, typeof(TResponse))
+                TypeInfoResolver = new MessageTypeResolver(response.Uri, typeof(TResponse))
             };
             return response.ToJson(options);
         }
@@ -49,7 +49,7 @@ namespace BuildMonitor.Extensions
         {
             var options = new JsonSerializerOptions
             {
-                TypeInfoResolver = new ResponseTypeResolver(typeDiscriminators)
+                TypeInfoResolver = new MessageTypeResolver(typeDiscriminators)
             };
             return data.FromJson<Message>(options);
         }
