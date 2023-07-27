@@ -30,7 +30,7 @@
         public float Progress
         {
             get;
-            private set;
+            init;
         }
 
     }

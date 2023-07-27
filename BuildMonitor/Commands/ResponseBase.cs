@@ -15,6 +15,6 @@
         /// <summary>
         /// If true the command was successfull, else false.
         /// </summary>
-        public bool ReturnValue { get; set; }
+        public bool ReturnValue { get; set; } = true;
     }
 }

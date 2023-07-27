@@ -34,7 +34,6 @@ namespace WebMessage.Commands.Api
 
         public HandshakeResponse()
         {
-            ReturnValue = true;
         }
     }
 }
