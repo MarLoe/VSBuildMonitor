@@ -50,7 +50,7 @@ namespace WebMessage.Server
             {
                 throw new InvalidOperationException($@"The actual request 'Uri: {request.Uri}' does not match the registered 'Uri: {Uri}'");
             }
-            return response.CreateMessage(Message.TypeResponse, request.Uri, request.Id).ToResponseJson();
+            return response.CreateMessage(Message.TypeResponse, request.Uri, request.Id).ToJson();
         }
 
         internal virtual string CreateError(Message request, string error)

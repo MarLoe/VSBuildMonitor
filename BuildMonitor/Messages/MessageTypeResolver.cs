@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using WebMessage.Commands;
 
 namespace WebMessage.Messages
 {
@@ -16,6 +17,7 @@ namespace WebMessage.Messages
         internal MessageTypeResolver()
         {
             Modifiers.Add(IgnoreTypeDiscriminator);
+            Modifiers.Add(IgnoreCommandProperties);
         }
 
         internal MessageTypeResolver(string typeDiscriminator, Type type) : this(new Dictionary<string, Type> { [typeDiscriminator] = type })
@@ -93,14 +95,31 @@ namespace WebMessage.Messages
 
         private void IgnoreTypeDiscriminator(JsonTypeInfo info)
         {
-            var propertyInfo = info.Properties.FirstOrDefault(p => p.Name == TypeDiscriminator);
-            if (propertyInfo is not null)
+            if (typeof(Message).IsAssignableFrom(info.Type))
             {
-                info.Properties.Remove(propertyInfo);
+                var propertyInfo = info.Properties.FirstOrDefault(p => p.Name == TypeDiscriminator);
+                if (propertyInfo is not null)
+                {
+                    info.Properties.Remove(propertyInfo);
+                }
             }
         }
 
+        private void IgnoreCommandProperties(JsonTypeInfo info)
+        {
+            var properties = new[] { nameof(ICommand), nameof(ICommandCustom) }
+                .Select(info.Type.GetInterface)
+                .Where(i => i is not null)
+                .SelectMany(i => i!.GetProperties());
+            foreach (var prop in properties)
+            {
+                var typeProperty = info.Properties.FirstOrDefault(p => p.Name == prop.Name);
+                if (typeProperty is not null)
+                {
+                    info.Properties.Remove(typeProperty);
+                }
+            }
+        }
     }
-
 }
 

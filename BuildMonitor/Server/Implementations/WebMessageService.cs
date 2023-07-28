@@ -96,7 +96,7 @@ namespace WebMessage.Server
         {
             var requestInfo = FindRequestInfo<TResponse>();
             var message = response.CreateMessage(Message.TypeEvent, requestInfo.Uri, string.Empty);
-            var data = message.ToResponseJson();
+            var data = message.ToJson();
             var sendTasks = _connections
                 .Where(c => requestInfo.Subscriptions.Contains(c.Id))
                 .Select(c => c.SendAsync(data));
@@ -127,7 +127,7 @@ namespace WebMessage.Server
             {
                 if (requestInfo.HandleSubscribe(clientId, request))
                 {
-                    return request.CreateResponse().ToResponseJson();
+                    return request.CreateResponse().ToJson();
                 }
                 return request.CreateError($@"Unable to {request.Type} to {request.Uri}").ToJson();
             }

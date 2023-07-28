@@ -9,21 +9,12 @@ namespace BuildMonitor.Extensions
     {
         public static string ToJson<TMessage>(this TMessage message, JsonSerializerOptions? options = null) where TMessage : Message
         {
-            options ??= new JsonSerializerOptions();
+            options ??= new() { TypeInfoResolver = new MessageTypeResolver(message.Uri, typeof(TMessage)) };
             options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 #if DEBUG
             options.WriteIndented = true;
 #endif
             return JsonSerializer.Serialize(message, options);
-        }
-
-        public static string ToResponseJson<TResponse>(this TResponse response) where TResponse : Message
-        {
-            var options = new JsonSerializerOptions
-            {
-                TypeInfoResolver = new MessageTypeResolver(response.Uri, typeof(TResponse))
-            };
-            return response.ToJson(options);
         }
 
         public static Message? FromJson(this string data, JsonSerializerOptions? options = null)
