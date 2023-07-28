@@ -10,7 +10,7 @@ namespace BuildMonitor.Extensions
         public static string ToJson<TMessage>(this TMessage message, JsonSerializerOptions? options = null) where TMessage : Message
         {
             options ??= new() { TypeInfoResolver = new MessageTypeResolver(message.Uri, typeof(TMessage)) };
-            options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
 #if DEBUG
             options.WriteIndented = true;
 #endif

@@ -14,7 +14,7 @@
     }
 
     /// <summary>
-    /// The basics of a command for WebOS
+    /// The basics of a command
     /// </summary>
     public abstract class CommandBase : ICommand, ICommandCustom
     {

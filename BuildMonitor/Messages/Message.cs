@@ -30,7 +30,7 @@ namespace WebMessage.Messages
         /// The id of the message. Resposed will be tagged
         /// with the same id to match request/response.
         /// </summary>
-        [JsonPropertyOrder(int.MinValue + 1), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyOrder(1), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string Id { get; set; } = GenerateId();
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace WebMessage.Messages
         /// <summary>
         /// The payload of the message (e.g. command json)
         /// </summary>
-        [JsonPropertyOrder(int.MaxValue), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyOrder(int.MaxValue), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public TPayload? Payload { get; set; }
     }
 
