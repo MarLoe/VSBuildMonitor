@@ -151,9 +151,9 @@ namespace WebMessage.Client
 
         private void OnSocketMessage(object? sender, SocketMessageEventArgs e)
         {
-            //_logger.LogTrace("Received: {data}", e.Data);
+            _logger.LogTrace("Received: {data}", e.Data);
 
-            var message = e.Data.FromResponseJson(_typeDiscriminators);
+            var message = e.Data.FromResponseJson(_typeDiscriminators, _logger);
             if (message is null)
             {
                 InvalidMessage?.Invoke(this, new(_device!, e.Data));
@@ -309,9 +309,9 @@ namespace WebMessage.Client
                     //    TypeInfoResolver = new MessageTypeResolver(new Dictionary<string, Type> { [message.Uri] = typeof(Message<TCommand>) })
                     //};
                     // TODO: Use options
-                    var json = message.ToJson();
+                    var json = message.ToJson(logger: _logger);
 
-                    //_logger.LogTrace("Sending: {json}", json);
+                    _logger.LogTrace("Sending: {json}", json);
                     _socket.Send(json);
                 }, cancellationToken);
 

@@ -11,7 +11,7 @@ namespace WebMessage.Server
     {
         private static readonly ILogger<WebMessageService> _logger = LoggerFactory.Global.CreateLogger<WebMessageService>();
 
-        private readonly List<RequestInfoBase> _registeredRequests;
+        private readonly List<RequestInfo> _registeredRequests;
         private readonly MessageTypeResolver _messageTypeResolver;
         private readonly List<IWebMessageConnection> _connections;
 
@@ -86,7 +86,7 @@ namespace WebMessage.Server
             }
 
             var message = response.CreateMessage(Message.TypeResponse, requestInfo.Uri, string.Empty);
-            return connection?.SendAsync(message.ToJson()) ?? Task.FromResult(false);
+            return connection?.SendAsync(message.ToJson(logger: _logger)) ?? Task.FromResult(false);
         }
 
         public Task<bool> BroadcastAsync<TResponse>(TResponse response)
@@ -102,14 +102,14 @@ namespace WebMessage.Server
             }
 
             var message = response.CreateMessage(Message.TypeResponse, requestInfo.Uri, string.Empty);
-            return connection.BroadcastAsync(message.ToJson()) ?? Task.FromResult(false);
+            return connection.BroadcastAsync(message.ToJson(logger: _logger)) ?? Task.FromResult(false);
         }
 
         public async Task<bool> RaiseEventAsync<TResponse>(TResponse response)
         {
             var requestInfo = FindRequestInfo<TResponse>();
             var message = response.CreateMessage(Message.TypeEvent, requestInfo.Uri, string.Empty);
-            var data = message.ToJson();
+            var data = message.ToJson(logger: _logger);
             var sendTasks = _connections
                 .Where(c => requestInfo.Subscriptions.Contains(c.Id))
                 .Select(c => c.SendAsync(data));
@@ -119,7 +119,7 @@ namespace WebMessage.Server
 
         internal async Task<string> HandleRequest(string clientId, string message)
         {
-            var request = message.FromJson(CreateOptions());
+            var request = message.FromJson(CreateOptions(), _logger);
             if (request is null)
             {
                 _logger.LogError("Unsupported request: {message}", message);
@@ -187,7 +187,7 @@ namespace WebMessage.Server
             ClientDisconnected?.Invoke(this, new(connection.Id));
         }
 
-        protected RequestInfoBase FindRequestInfo<TResponse>()
+        protected RequestInfo FindRequestInfo<TResponse>()
         {
             return _registeredRequests.FirstOrDefault(r => r.ResponseType == typeof(TResponse))
                 ?? throw new InvalidOperationException($@"Cannot send a response that has not been registered: {typeof(TResponse)}");

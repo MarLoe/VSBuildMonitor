@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using WebMessage.Commands;
 using WebMessage.Messages;
 
@@ -7,22 +8,30 @@ namespace BuildMonitor.Extensions
 {
     internal static class MessageExtensions
     {
-        public static string ToJson<TMessage>(this TMessage message, JsonSerializerOptions? options = null) where TMessage : Message
+        public static string ToJson<TMessage>(this TMessage message, JsonSerializerOptions? options = null, ILogger? logger = null) where TMessage : Message
         {
             options ??= new() { TypeInfoResolver = new MessageTypeResolver(message.Uri, typeof(TMessage)) };
             options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
 #if DEBUG
             options.WriteIndented = true;
 #endif
-            return JsonSerializer.Serialize(message, options);
+            try
+            {
+                return JsonSerializer.Serialize(message, options);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Failed to serialize message: {message}", message);
+                throw;
+            }
         }
 
-        public static Message? FromJson(this string data, JsonSerializerOptions? options = null)
+        public static Message? FromJson(this string data, JsonSerializerOptions? options = null, ILogger? logger = null)
         {
-            return data.FromJson<Message>(options);
+            return data.FromJson<Message>(options, logger);
         }
 
-        public static TMessage? FromJson<TMessage>(this string data, JsonSerializerOptions? options = null) where TMessage : Message
+        public static TMessage? FromJson<TMessage>(this string data, JsonSerializerOptions? options = null, ILogger? logger = null) where TMessage : Message
         {
             options ??= new JsonSerializerOptions();
             try
@@ -31,18 +40,18 @@ namespace BuildMonitor.Extensions
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(ex);
+                logger?.LogError(ex, "Failed to deserialize message: {data}", data);
                 return null;
             }
         }
 
-        public static Message? FromResponseJson(this string data, IDictionary<string, Type> typeDiscriminators)
+        public static Message? FromResponseJson(this string data, IDictionary<string, Type> typeDiscriminators, ILogger? logger = null)
         {
             var options = new JsonSerializerOptions
             {
                 TypeInfoResolver = new MessageTypeResolver(typeDiscriminators)
             };
-            return data.FromJson<Message>(options);
+            return data.FromJson<Message>(options, logger);
         }
 
         public static Message CreateResponse(this Message request)
