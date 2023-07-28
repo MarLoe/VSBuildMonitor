@@ -71,6 +71,12 @@ namespace WebMessage.Client
         {
             // Create a default timeout - in case we never get a response.
             var ctsTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+#if DEBUG
+            if (System.Diagnostics.Debugger.IsAttached)
+            {
+                ctsTimeout.CancelAfter(TimeSpan.FromSeconds(150));
+            }
+#endif
             return ConnectAsync(ctsTimeout.Token);
         }
 
@@ -102,6 +108,12 @@ namespace WebMessage.Client
         {
             // Create a default timeout - in case we never get a response.
             var ctsTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+#if DEBUG
+            if (System.Diagnostics.Debugger.IsAttached)
+            {
+                ctsTimeout.CancelAfter(TimeSpan.FromSeconds(600));
+            }
+#endif
             return SendCommandAsync<TCommand, TResponse>(command, ctsTimeout.Token);
         }
 
@@ -174,7 +186,6 @@ namespace WebMessage.Client
             {
                 commandEventHandlers.Values.ToList().ForEach(h => h(message));
             }
-            System.Diagnostics.Debug.WriteLine(message);
         }
 
         protected void OnSocketDisconnect(object? sender, EventArgs e)
