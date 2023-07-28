@@ -1,10 +1,14 @@
-﻿using WebMessage.Device;
+﻿using BuildMonitor.Logging;
+using Microsoft.Extensions.Logging;
+using WebMessage.Device;
 using WebSocketSharp;
 
 namespace WebMessage.Client
 {
     public class SocketConnection : ISocketConnection
     {
+        private static readonly ILogger<SocketConnection> _logger = LoggerFactory.Global.CreateLogger<SocketConnection>();
+
         private WebSocket? _socket;
 
         #region ISocketConnection
@@ -45,7 +49,7 @@ namespace WebMessage.Client
         protected void Connect(string url, string? fallbackUrl)
         {
             var socket = new WebSocket(url);
-            socket.Log.Level = LogLevel.Debug;
+            socket.Log.Level = WebSocketSharp.LogLevel.Debug;
 
             socket.OnMessage += (s, e) => OnMessage?.Invoke(this, new SocketMessageEventArgs(e.Data));
             socket.OnClose += (s, e) =>
@@ -59,7 +63,7 @@ namespace WebMessage.Client
             };
             socket.OnError += (s, e) =>
             {
-                System.Diagnostics.Debug.WriteLine(e.Message);
+                _logger.LogError(e.Exception, "Socket error: {message}", e.Message);
             };
             if (socket.IsSecure)
             {

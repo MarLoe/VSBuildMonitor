@@ -1,4 +1,6 @@
-﻿using WebSocketSharp;
+﻿using BuildMonitor.Logging;
+using Microsoft.Extensions.Logging;
+using WebSocketSharp;
 using WebSocketSharp.Server;
 
 namespace WebMessage.Server
@@ -14,6 +16,8 @@ namespace WebMessage.Server
 
     internal class WebMessageBehavior : WebSocketBehavior, IWebMessageConnection
     {
+        private static readonly ILogger<WebMessageBehavior> _logger = LoggerFactory.Global.CreateLogger<WebMessageBehavior>();
+
         internal WebMessageService? RequestManager { get; set; }
 
 
@@ -55,6 +59,7 @@ namespace WebMessage.Server
 
         #endregion
 
+
         protected override void OnOpen()
         {
             base.OnOpen();
@@ -83,7 +88,7 @@ namespace WebMessage.Server
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine(ex);
+                    _logger.LogError(ex, "Failed to handle request: {data}", e.Data);
                 }
             }
         }

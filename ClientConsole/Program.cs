@@ -1,4 +1,5 @@
-﻿using WebMessage.Client;
+﻿using Microsoft.Extensions.Logging;
+using WebMessage.Client;
 using WebMessage.Commands.Api;
 using WebMessage.Device;
 using WebMessage.Server;
@@ -9,6 +10,14 @@ namespace ClientConsole
     {
         static async Task Main(string[] args)
         {
+            BuildMonitor.Logging.LoggerFactory.Global = LoggerFactory.Create(builder =>
+            {
+#if DEBUG
+                builder.SetMinimumLevel(LogLevel.Trace);
+#endif
+                builder.AddConsole();
+            });
+
             var clientId = string.Empty;
 
             var server = new WebMessageServer();

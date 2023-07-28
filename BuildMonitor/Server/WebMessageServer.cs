@@ -1,14 +1,15 @@
 ﻿using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
+using BuildMonitor.Logging;
+using Microsoft.Extensions.Logging;
 using WebMessage.Commands.Api;
-using WebSocketSharp;
 using WebSocketSharp.Server;
 
 namespace WebMessage.Server
 {
     public class WebMessageServer
     {
-        //private readonly RequestManager _requestManager;
+        private static readonly ILogger<WebMessageServer> _logger = LoggerFactory.Global.CreateLogger<WebMessageServer>();
         private readonly WebSocketServer _server;
 
         public WebMessageServer() : this(13001, true)
@@ -17,9 +18,6 @@ namespace WebMessage.Server
 
         public WebMessageServer(int port, bool secure)
         {
-            //_requestManager = new RequestManager();
-            //_requestManager.RegisterRequestHandler<HandshakeRequest, HandshakeResponse>(string.Empty, HandshakeRequestHandler);
-
             _server = new WebSocketServer(port, secure)
             {
                 KeepClean = true,
@@ -40,7 +38,7 @@ namespace WebMessage.Server
 
 #if DEBUG
             // To change the logging level.
-            _server.Log.Level = LogLevel.Trace;
+            _server.Log.Level = WebSocketSharp.LogLevel.Trace;
 
             // To change the wait time for the response to the Ping or Close.
             _server.WaitTime = TimeSpan.FromSeconds(10);
@@ -74,13 +72,14 @@ namespace WebMessage.Server
             var requestManager = new WebMessageService();
             if (!_requestManagers.TryAdd(path, requestManager))
             {
+                _logger.LogError("A service with the path: '{path}' is already registered", path);
                 throw new ArgumentException($@"A service with the path: '{path}' is already registered", nameof(path));
             }
 
             requestManager.RegisterRequestHandler<HandshakeCommand, HandshakeResponse>(string.Empty, HandshakeRequestHandler);
             _server.AddWebSocketService<WebMessageBehavior>(path, b =>
             {
-                System.Diagnostics.Debug.WriteLine(b.ID);
+                _logger.LogDebug("New web socket service for '{path}' with id: {id}", path, b.ID);
                 b.RequestManager = requestManager;
             });
 

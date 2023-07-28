@@ -1,5 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using BuildMonitor.Extensions;
+using BuildMonitor.Logging;
+using Microsoft.Extensions.Logging;
 using WebMessage.Commands;
 using WebMessage.Commands.Api;
 using WebMessage.Device;
@@ -10,6 +12,8 @@ namespace WebMessage.Client
 {
     public class WebMessageClient : IWebMessageClient, IDisposable
     {
+        private static readonly ILogger<WebMessageClient> _logger = LoggerFactory.Global.CreateLogger<WebMessageClient>();
+
         private readonly ISocketConnection _socket;
 
         private readonly ConcurrentDictionary<string, TaskCompletionSource<Message>> _completionSources = new();
@@ -322,7 +326,7 @@ namespace WebMessage.Client
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(ex);
+                _logger.LogError(ex, "Failed sending message");
             }
 
             return null;

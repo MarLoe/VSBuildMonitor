@@ -1,12 +1,16 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using BuildMonitor.Extensions;
+using BuildMonitor.Logging;
+using Microsoft.Extensions.Logging;
 using WebMessage.Messages;
 
 namespace WebMessage.Server
 {
     internal class WebMessageService : IWebMessageService
     {
+        private static readonly ILogger<WebMessageService> _logger = LoggerFactory.Global.CreateLogger<WebMessageService>();
+
         private readonly List<RequestInfoBase> _registeredRequests;
         private readonly MessageTypeResolver _messageTypeResolver;
         private readonly List<IWebMessageConnection> _connections;
@@ -37,6 +41,8 @@ namespace WebMessage.Server
 
             _registeredRequests.Add(new RequestInfo<TResponse>(uri, handler));
             _messageTypeResolver.Add(uri);
+
+            _logger.LogInformation("Registered request handler: {uri}", uri);
         }
 
         public void RegisterRequestHandler<TRequest, TResponse>(string uri, RequestHandler<TRequest, TResponse> handler)
@@ -54,10 +60,14 @@ namespace WebMessage.Server
 
             _registeredRequests.Add(new RequestInfo<TRequest, TResponse>(uri, handler));
             _messageTypeResolver.Add<TRequest>(uri);
+
+            _logger.LogInformation("Registered request handler: {uri} for {type}", uri, typeof(TRequest));
         }
 
         public void UnregisterRequestHandler(string uri)
         {
+            _logger.LogInformation("Unregistering request handler: {uri}", uri);
+
             _registeredRequests.RemoveAll(r => r.Uri == uri);
             _messageTypeResolver.Remove(uri);
         }
@@ -71,6 +81,7 @@ namespace WebMessage.Server
             var connection = _connections.FirstOrDefault(c => c.Id == clientId);
             if (connection is null)
             {
+                _logger.LogWarning("Client with id {id} not found", clientId);
                 return Task.FromResult(false);
             }
 
@@ -80,11 +91,13 @@ namespace WebMessage.Server
 
         public Task<bool> BroadcastAsync<TResponse>(TResponse response)
         {
+            // Find request info first. It will throw if the request is not valid.
             var requestInfo = FindRequestInfo<TResponse>();
 
             var connection = _connections.FirstOrDefault();
             if (connection is null)
             {
+                _logger.LogInformation("No connections available");
                 return Task.FromResult(true); // No clients connected - all good
             }
 
@@ -109,17 +122,20 @@ namespace WebMessage.Server
             var request = message.FromJson(CreateOptions());
             if (request is null)
             {
+                _logger.LogError("Unsupported request: {message}", message);
                 return request.CreateError($@"Unsupported request: {message}").ToJson();
             }
 
             if (request.Type is Message.TypeResponse or Message.TypeError)
             {
+                _logger.LogError("Unsupported request type: {type}", request.Type);
                 return request.CreateError($@"Unsupported request type: {request.Type}").ToJson();
             }
 
             var requestInfo = _registeredRequests.FirstOrDefault(ri => ri.Uri == request.Uri);
             if (requestInfo is null)
             {
+                _logger.LogError("Invalid request uri: {uri}", request.Uri);
                 return request.CreateError($@"Invalid request uri: {request.Uri}").ToJson();
             }
 
@@ -129,6 +145,7 @@ namespace WebMessage.Server
                 {
                     return request.CreateResponse().ToJson();
                 }
+                _logger.LogError("Unable to {type} to {uri}", request.Type, request.Uri);
                 return request.CreateError($@"Unable to {request.Type} to {request.Uri}").ToJson();
             }
 
@@ -154,6 +171,7 @@ namespace WebMessage.Server
             {
                 if (existing == connection)
                 {
+                    _logger.LogInformation("Connection already added");
                     return;
                 }
                 throw new ArgumentException($@"Connection with id '{connection.Id}' already exists");

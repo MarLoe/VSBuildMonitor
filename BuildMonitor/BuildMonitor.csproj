@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="WebSocketSharp-netstandard" Version="1.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,6 +18,7 @@
     <None Remove="Server\Implementations\" />
     <None Remove="Client\Implementations\" />
     <None Remove="Extensions\" />
+    <None Remove="Logging\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Certificate\" />
@@ -24,6 +26,7 @@
     <Folder Include="Server\Implementations\" />
     <Folder Include="Client\Implementations\" />
     <Folder Include="Extensions\" />
+    <Folder Include="Logging\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Certificate\server.pfx">
