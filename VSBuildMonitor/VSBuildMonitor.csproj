@@ -12,13 +12,24 @@
 		<StartArguments>--no-redirect --no-start-window "/Users/malo/Projects/VSBuildMonitor/TestProject/TestProject.sln"</StartArguments>
 		<ExternalConsole>true</ExternalConsole>
 	</PropertyGroup>
+	<PropertyGroup>
+		<WebsocketSharpRoot Condition=" '$(WebsocketSharpRoot)' == '' ">$(NuGetPackageRoot)\websocket-sharp-net7\1.0.0</WebsocketSharpRoot>
+	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.VisualStudioMac.Sdk" Version="17.5.0" />
+		<PackageReference Include="websocket-sharp-net7" Version="1.0.0" GeneratePathProperty="true" />
 	</ItemGroup>
 	<ItemGroup>
 		<AddinReference Include="Microsoft.VisualStudioMac.AddinMaker" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\BuildMonitor\BuildMonitor.csproj" />
+		<ProjectReference Include="..\BuildMonitor\BuildMonitor.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="$(WebsocketSharpRoot)\lib\net7.0\websocket-sharp.dll">
+			<Link>websocket-sharp.dll</Link>
+			<Visible>false</Visible>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 </Project>
