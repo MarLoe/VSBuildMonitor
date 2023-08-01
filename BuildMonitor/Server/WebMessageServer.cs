@@ -3,11 +3,12 @@ using System.Security.Cryptography.X509Certificates;
 using BuildMonitor.Logging;
 using Microsoft.Extensions.Logging;
 using WebMessage.Commands.Api;
+using WebSocketSharp;
 using WebSocketSharp.Server;
 
 namespace WebMessage.Server
 {
-    public class WebMessageServer
+    public class WebMessageServer : IDisposable
     {
         private static readonly ILogger<WebMessageServer> _logger = LoggerFactory.Global.CreateLogger<WebMessageServer>();
         private readonly WebSocketServer _server;
@@ -34,7 +35,7 @@ namespace WebMessage.Server
                 };
             }
 
-            _server.AllowForwardedRequest = true;
+            //_server.AllowForwardedRequest = true;
 
 #if DEBUG
             // To change the logging level.
@@ -47,6 +48,27 @@ namespace WebMessage.Server
             _server.Start();
         }
 
+        ~WebMessageServer()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(false);
+        }
+
+        #region IDisposable
+
+        protected virtual void Dispose(bool disposing)
+        {
+            _server.Stop();
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
 
         //public Func<HandshakeRequest, Task<string>>? PairingRequest { get; set; }
 
@@ -69,21 +91,21 @@ namespace WebMessage.Server
                 return response;
             }
 
-            var requestManager = new WebMessageService();
-            if (!_requestManagers.TryAdd(path, requestManager))
+            var service = new WebMessageService();
+            if (!_requestManagers.TryAdd(path, service))
             {
                 _logger.LogError("A service with the path: '{path}' is already registered", path);
                 throw new ArgumentException($@"A service with the path: '{path}' is already registered", nameof(path));
             }
 
-            requestManager.RegisterRequestHandler<HandshakeCommand, HandshakeResponse>(string.Empty, HandshakeRequestHandler);
-            _server.AddWebSocketService<WebMessageBehavior>(path, b =>
+            service.RegisterRequestHandler<HandshakeCommand, HandshakeResponse>(string.Empty, HandshakeRequestHandler);
+            _server.AddWebSocketService<WebMessageBehavior>(path, (b) =>
             {
                 _logger.LogDebug("New web socket service for '{path}' with id: {id}", path, b.ID);
-                b.RequestManager = requestManager;
+                b.RequestManager = service;
             });
 
-            return requestManager;
+            return service;
         }
 
     }
